@@ -2,12 +2,14 @@ package com.mainframe;
 
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 
 import java.awt.Component;
 import java.awt.Container;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.concurrent.atomic.AtomicReference;
+import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.SwingUtilities;
@@ -53,6 +55,30 @@ public class MainframePanelTest
 		{
 			assertTrue(containsText(panel, "Side Quest Unlocks"));
 			assertTrue(containsText(panel, "Dwarf Cannon"));
+		});
+	}
+
+	@Test
+	public void goalDetailsExpandFromCompactCards() throws Exception
+	{
+		InMemoryMainframeStateStore store = new InMemoryMainframeStateStore();
+		MainframePanel panel = new MainframePanel(store, ignored -> { }, () -> { }, ignored -> { }, true);
+		RoadmapGoal goal = new RoadmapGoal("expandable", "Expandable Goal", GoalCategory.ACCOUNT_UNLOCKS, GoalTier.EARLY, 1,
+			"Expandable detail text", Arrays.asList(RoadmapRequirement.skill(Skill.PRAYER, 43)),
+			Arrays.asList("First detailed step", "Second detailed step"), false);
+		GoalProgress progress = new RoadmapProgressService(Arrays.asList(goal)).evaluate(new FakeProgressContext()).get(0);
+
+		SwingUtilities.invokeAndWait(() -> panel.update("profile", new ProgressSnapshot(Arrays.asList(progress), Collections.emptyList(), "Profile",
+			ProgressionPath.OPTIMAL_QUEST_COMPLETION, true, "Local account data", "Unknown")));
+		SwingUtilities.invokeAndWait(() ->
+		{
+			assertTrue(containsText(panel, "Expandable Goal"));
+			assertFalse(containsText(panel, "Expandable detail text"));
+			JButton expand = findButton(panel, "+");
+			expand.doClick();
+			assertTrue(containsText(panel, "Expandable detail text"));
+			assertTrue(containsText(panel, "First detailed step"));
+			assertTrue(containsText(panel, "[*] Tip"));
 		});
 	}
 
@@ -107,6 +133,26 @@ public class MainframePanelTest
 			if (component instanceof Container)
 			{
 				Component nested = findFirst((Container) component, type);
+				if (nested != null)
+				{
+					return nested;
+				}
+			}
+		}
+		return null;
+	}
+
+	private static JButton findButton(Container container, String text)
+	{
+		for (Component component : container.getComponents())
+		{
+			if (component instanceof JButton && text.equals(((JButton) component).getText()))
+			{
+				return (JButton) component;
+			}
+			if (component instanceof Container)
+			{
+				JButton nested = findButton((Container) component, text);
 				if (nested != null)
 				{
 					return nested;

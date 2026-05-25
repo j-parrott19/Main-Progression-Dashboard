@@ -11,9 +11,11 @@ import java.awt.Insets;
 import java.awt.Rectangle;
 import java.util.Comparator;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import javax.swing.BorderFactory;
@@ -47,6 +49,7 @@ final class MainframePanel extends PluginPanel
 	private String scope;
 	private ProgressSnapshot snapshot;
 	private final JPanel content = new ScrollableContent();
+	private final Set<String> expandedGoalIds = new HashSet<>();
 
 	MainframePanel(
 		MainframeStateStore stateStore,
@@ -278,26 +281,116 @@ final class MainframePanel extends PluginPanel
 		JPanel stack = new JPanel();
 		stack.setOpaque(false);
 		stack.setLayout(new BoxLayout(stack, BoxLayout.Y_AXIS));
-		stack.add(label(goal.getTitle(), 12, Font.BOLD, progress.isComplete() ? DONE : TEXT));
+		stack.add(goalHeader(progress));
 		String rank = progress.isNextRecommended() ? "Recommended #" + progress.getRecommendationRank() + " - " : "";
 		stack.add(label(rank + goal.getTier().getDisplayName() + " - " + progress.getStatusText(), 10, Font.PLAIN, MUTED));
-		stack.add(html(goal.getDescription(), MUTED));
-
-		if (!progress.isComplete() && !progress.getMissingRequirements().isEmpty())
+		if (isExpanded(goal))
 		{
-			stack.add(html("Needs: " + String.join(", ", progress.getMissingRequirements()), TEXT));
-		}
-		if (!goal.getHowToSteps().isEmpty())
-		{
-			for (int i = 0; i < goal.getHowToSteps().size(); i++)
-			{
-				stack.add(html((i + 1) + ". " + goal.getHowToSteps().get(i), MUTED));
-			}
+			stack.add(goalDetails(progress));
 		}
 
 		card.add(checkbox, BorderLayout.WEST);
 		card.add(stack, BorderLayout.CENTER);
 		return card;
+	}
+
+	private JPanel goalHeader(GoalProgress progress)
+	{
+		RoadmapGoal goal = progress.getGoal();
+		JPanel header = new JPanel(new BorderLayout(6, 0));
+		header.setOpaque(false);
+		JButton expand = new JButton(isExpanded(goal) ? "-" : "+");
+		expand.setFocusable(false);
+		expand.setMargin(new Insets(0, 4, 0, 4));
+		expand.setToolTipText(isExpanded(goal) ? "Hide details" : "Show details");
+		expand.addActionListener(event ->
+		{
+			if (isExpanded(goal))
+			{
+				expandedGoalIds.remove(goal.getId());
+			}
+			else
+			{
+				expandedGoalIds.add(goal.getId());
+			}
+			rebuild();
+		});
+		header.add(label(goal.getTitle(), 12, Font.BOLD, progress.isComplete() ? DONE : TEXT), BorderLayout.CENTER);
+		header.add(expand, BorderLayout.EAST);
+		return header;
+	}
+
+	private JPanel goalDetails(GoalProgress progress)
+	{
+		RoadmapGoal goal = progress.getGoal();
+		JPanel details = new JPanel();
+		details.setOpaque(false);
+		details.setLayout(new BoxLayout(details, BoxLayout.Y_AXIS));
+		details.setBorder(BorderFactory.createEmptyBorder(6, 0, 0, 0));
+		details.add(detailBlock("[i] Why", goal.getDescription(), MUTED));
+
+		if (!progress.isComplete() && !progress.getMissingRequirements().isEmpty())
+		{
+			details.add(detailBlock("[!] Needs", String.join(", ", progress.getMissingRequirements()), TEXT));
+		}
+		if (!goal.getHowToSteps().isEmpty())
+		{
+			details.add(detailBlock("[>] Steps", numberedSteps(goal.getHowToSteps()), MUTED));
+		}
+		details.add(detailBlock("[*] Tip", tipText(progress), ACCENT));
+		return details;
+	}
+
+	private JPanel detailBlock(String title, String text, Color color)
+	{
+		JPanel block = new JPanel();
+		block.setOpaque(false);
+		block.setLayout(new BoxLayout(block, BoxLayout.Y_AXIS));
+		block.setBorder(BorderFactory.createEmptyBorder(3, 0, 4, 0));
+		block.add(label(title, 10, Font.BOLD, ACCENT));
+		block.add(html(text, color));
+		return block;
+	}
+
+	private boolean isExpanded(RoadmapGoal goal)
+	{
+		return expandedGoalIds.contains(goal.getId());
+	}
+
+	private String numberedSteps(List<String> steps)
+	{
+		List<String> numbered = new ArrayList<>();
+		for (int i = 0; i < steps.size(); i++)
+		{
+			numbered.add((i + 1) + ". " + steps.get(i));
+		}
+		return String.join("\n", numbered);
+	}
+
+	private String tipText(GoalProgress progress)
+	{
+		RoadmapGoal goal = progress.getGoal();
+		if (progress.isComplete())
+		{
+			return "Done. Collapse it and move to the next unlock.";
+		}
+		if (progress.isNextRecommended())
+		{
+			return "High-value for your selected path right now.";
+		}
+		if (goal.getCategory() == GoalCategory.SIDE_QUEST_UNLOCKS)
+		{
+			return "Optional unlock. Pick it up when the reward helps your current route.";
+		}
+		if (goal.isManualCompletion())
+		{
+			return "Manual check. Mark it after the reward is actually claimed.";
+		}
+		if (progress.isBlocked())
+		{
+			return "Park this until at least one requirement is close.";
+		}
+		return "Good filler when you want structured progress without changing paths.";
 	}
 
 	private void setManualRequirementComplete(RoadmapRequirement requirement, boolean complete)
@@ -454,7 +547,7 @@ final class MainframePanel extends PluginPanel
 
 	private String htmlText(String text)
 	{
-		return "<html><body style='width:" + wrapWidth() + "px'>" + escape(text) + "</body></html>";
+		return "<html><body style='width:" + wrapWidth() + "px'>" + escape(text).replace("\n", "<br>") + "</body></html>";
 	}
 
 	private int wrapWidth()
