@@ -26,6 +26,18 @@ $env:JAVA_HOME='C:\Path\To\jdk-21'
 .\gradlew.bat run
 ```
 
+`run` now builds the plugin jar, copies it into `%USERPROFILE%\.runelite\sideloaded-plugins`, and opens the Jagex Launcher. Start RuneLite from the Jagex Launcher after the task finishes so the plugin loads into the launcher-authenticated client.
+
+In the Jagex Launcher, configure RuneLite's client arguments to include `--developer-mode --debug`. Developer mode is what allows RuneLite to load the sideloaded plugin jar.
+
+If RuneLite is installed in a custom profile directory or the launcher is somewhere else:
+
+```powershell
+.\gradlew.bat run -PruneliteHome='C:\Path\To\.runelite' -PjagexLauncherPath='C:\Path\To\JagexLauncher.exe'
+```
+
+For the old standalone development-client flow, use `.\gradlew.bat runDevelopmentClient`.
+
 RuneLite Plugin Hub submission is intentionally not included yet; it requires a public GitHub repository URL and commit hash.
 
 ## Compliance Boundary
