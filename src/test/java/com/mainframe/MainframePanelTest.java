@@ -120,7 +120,7 @@ public class MainframePanelTest
 			assertTrue(containsText(panel, "Requirements needed:"));
 			assertTrue(containsText(panel, "60 Defence"));
 			assertTrue(containsText(panel, "Warriors' Guild access"));
-			assertTrue(containsText(panel, "need one: 130 combined Attack + Strength OR 99 Attack OR 99 Strength"));
+			assertTrue(containsText(panel, "Need one: 130 combined Attack + Strength OR 99 Attack OR 99 Strength"));
 			assertTrue(containsText(panel, "Earn dragon defender"));
 		});
 	}

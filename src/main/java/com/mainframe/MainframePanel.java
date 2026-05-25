@@ -48,6 +48,7 @@ final class MainframePanel extends PluginPanel
 	private static final int GOAL_META_SIZE = 12;
 	private static final int DETAIL_SIZE = 12;
 	private static final int CONTROL_HEIGHT = 30;
+	private static final int DETAIL_WRAP_INSET = 70;
 
 	private final MainframeStateStore stateStore;
 	private final Consumer<Boolean> manualRefresh;
@@ -424,11 +425,11 @@ final class MainframePanel extends PluginPanel
 			.collect(Collectors.toList());
 		if (!completeOptions.isEmpty())
 		{
-			return requirement.getLabel() + " (met via " + String.join(" OR ", completeOptions) + ")";
+			return requirement.getLabel() + "\nMet via: " + String.join(" OR ", completeOptions);
 		}
-		return requirement.getLabel() + " (need one: " + requirement.getOptions().stream()
+		return requirement.getLabel() + "\nNeed one: " + requirement.getOptions().stream()
 			.map(RequirementProgress::getLabel)
-			.collect(Collectors.joining(" OR ")) + ")";
+			.collect(Collectors.joining(" OR "));
 	}
 
 	private JPanel detailBlock(String title, String text, Color color)
@@ -639,7 +640,7 @@ final class MainframePanel extends PluginPanel
 
 	private JLabel html(String text, Color color)
 	{
-		return html(text, DETAIL_SIZE, Font.PLAIN, color, 34);
+		return html(text, DETAIL_SIZE, Font.PLAIN, color, DETAIL_WRAP_INSET);
 	}
 
 	private JLabel html(String text, int size, int style, Color color, int wrapInset)
@@ -651,7 +652,7 @@ final class MainframePanel extends PluginPanel
 	private String htmlText(String text, int size, int style, Color color, int wrapInset)
 	{
 		String weight = style == Font.BOLD ? "bold" : "normal";
-		return "<html><body style='width:" + wrapWidth(wrapInset) + "px; font-family:sans-serif; font-size:" + size + "pt; font-weight:" + weight + "; color:" + hex(color) + "; margin:0; padding:0;'>"
+		return "<html><body style='width:" + wrapWidth(wrapInset) + "px; font-family:sans-serif; font-size:" + size + "pt; font-weight:" + weight + "; color:" + hex(color) + "; margin:0; padding:0; word-wrap:break-word;'>"
 			+ escape(text).replace("\n", "<br>") + "</body></html>";
 	}
 
