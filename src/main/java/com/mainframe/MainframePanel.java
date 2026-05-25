@@ -40,6 +40,13 @@ final class MainframePanel extends PluginPanel
 	private static final Color MUTED = new Color(155, 155, 155);
 	private static final Color ACCENT = new Color(230, 126, 34);
 	private static final Color DONE = new Color(88, 214, 141);
+	private static final int TITLE_SIZE = 20;
+	private static final int META_SIZE = 12;
+	private static final int SECTION_SIZE = 16;
+	private static final int GOAL_TITLE_SIZE = 15;
+	private static final int GOAL_META_SIZE = 12;
+	private static final int DETAIL_SIZE = 12;
+	private static final int CONTROL_HEIGHT = 30;
 
 	private final MainframeStateStore stateStore;
 	private final Consumer<Boolean> manualRefresh;
@@ -70,7 +77,7 @@ final class MainframePanel extends PluginPanel
 		content.setBackground(BACKGROUND);
 		JScrollPane scrollPane = new JScrollPane(content);
 		scrollPane.setBorder(BorderFactory.createEmptyBorder());
-		scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+		scrollPane.getVerticalScrollBar().setUnitIncrement(24);
 		add(scrollPane, BorderLayout.CENTER);
 	}
 
@@ -116,10 +123,10 @@ final class MainframePanel extends PluginPanel
 		header.setBackground(BACKGROUND);
 		header.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
 
-		JLabel title = label("Mainframe", 18, Font.BOLD, TEXT);
-		JLabel account = label(snapshot == null ? "Profile" : snapshot.getAccountLabel(), 11, Font.PLAIN, MUTED);
-		JLabel accountSummary = label(snapshot == null ? "Local account data" : snapshot.getAccountSummaryText(), 10, Font.PLAIN, MUTED);
-		JLabel importStatus = label(snapshot == null ? "" : snapshot.getImportStatusText(), 10, Font.PLAIN, MUTED);
+		JLabel title = label("Mainframe", TITLE_SIZE, Font.BOLD, TEXT);
+		JLabel account = label(snapshot == null ? "Profile" : snapshot.getAccountLabel(), META_SIZE, Font.PLAIN, MUTED);
+		JLabel accountSummary = label(snapshot == null ? "Local account data" : snapshot.getAccountSummaryText(), META_SIZE, Font.PLAIN, MUTED);
+		JLabel importStatus = label(snapshot == null ? "" : snapshot.getImportStatusText(), META_SIZE, Font.PLAIN, MUTED);
 		JPanel stack = new JPanel();
 		stack.setLayout(new BoxLayout(stack, BoxLayout.Y_AXIS));
 		stack.setBackground(BACKGROUND);
@@ -129,12 +136,13 @@ final class MainframePanel extends PluginPanel
 		stack.add(importStatus);
 		if (snapshot != null)
 		{
-			stack.add(label("Path: " + snapshot.getProgressionPath().getDisplayName(), 10, Font.BOLD, ACCENT));
+			stack.add(label("Path: " + snapshot.getProgressionPath().getDisplayName(), META_SIZE, Font.BOLD, ACCENT));
 		}
 
 		JComboBox<ProgressionPath> path = new JComboBox<>(ProgressionPath.values());
 		path.setFocusable(false);
-		path.setMaximumSize(new Dimension(Integer.MAX_VALUE, 26));
+		path.setFont(path.getFont().deriveFont(Font.PLAIN, (float) META_SIZE));
+		path.setMaximumSize(new Dimension(Integer.MAX_VALUE, CONTROL_HEIGHT));
 		if (snapshot != null)
 		{
 			path.setSelectedItem(snapshot.getProgressionPath());
@@ -149,7 +157,8 @@ final class MainframePanel extends PluginPanel
 		});
 		JButton refresh = new JButton("Refresh");
 		refresh.setFocusable(false);
-		refresh.setMaximumSize(new Dimension(Integer.MAX_VALUE, 26));
+		refresh.setFont(refresh.getFont().deriveFont(Font.PLAIN, (float) META_SIZE));
+		refresh.setMaximumSize(new Dimension(Integer.MAX_VALUE, CONTROL_HEIGHT));
 		refresh.addActionListener(event -> refreshRequest.run());
 
 		JPanel actions = new JPanel();
@@ -173,9 +182,10 @@ final class MainframePanel extends PluginPanel
 	{
 		JPanel card = card();
 		card.setLayout(new GridBagLayout());
-		JLabel title = label("First-time setup", 13, Font.BOLD, TEXT);
+		JLabel title = label("First-time setup", GOAL_TITLE_SIZE, Font.BOLD, TEXT);
 		JLabel detail = html("Not sure? Use Optimal Quest Completion. It prioritizes efficient quest and unlock routing.", MUTED);
 		JComboBox<ProgressionPath> path = new JComboBox<>(ProgressionPath.values());
+		path.setFont(path.getFont().deriveFont(Font.PLAIN, (float) META_SIZE));
 		path.setSelectedItem(snapshot.getProgressionPath());
 		JLabel pathDetail = html(snapshot.getProgressionPath().getDescription(), MUTED);
 		path.addActionListener(event ->
@@ -183,11 +193,12 @@ final class MainframePanel extends PluginPanel
 			ProgressionPath selected = (ProgressionPath) path.getSelectedItem();
 			if (selected != null)
 			{
-				pathDetail.setText(htmlText(selected.getDescription()));
+				pathDetail.setText(htmlText(selected.getDescription(), DETAIL_SIZE, Font.PLAIN, MUTED, 34));
 			}
 		});
 		JButton save = new JButton("Use this path");
 		save.setFocusable(false);
+		save.setFont(save.getFont().deriveFont(Font.PLAIN, (float) META_SIZE));
 		save.addActionListener(event ->
 		{
 			ProgressionPath selected = (ProgressionPath) path.getSelectedItem();
@@ -224,7 +235,7 @@ final class MainframePanel extends PluginPanel
 		section.setLayout(new BoxLayout(section, BoxLayout.Y_AXIS));
 		section.setBackground(BACKGROUND);
 		section.setBorder(BorderFactory.createEmptyBorder(5, 8, 8, 8));
-		section.add(label(title, 14, Font.BOLD, ACCENT));
+		section.add(label(title, SECTION_SIZE, Font.BOLD, ACCENT));
 		if (cards.isEmpty())
 		{
 			section.add(emptyLabel("Nothing here yet."));
@@ -261,7 +272,7 @@ final class MainframePanel extends PluginPanel
 	{
 		RoadmapGoal goal = progress.getGoal();
 		JPanel card = card();
-		card.setLayout(new BorderLayout(6, 0));
+		card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
 
 		JCheckBox checkbox = new JCheckBox();
 		checkbox.setOpaque(false);
@@ -278,19 +289,26 @@ final class MainframePanel extends PluginPanel
 			manualRefresh.accept(checkbox.isSelected());
 		});
 
+		JPanel summary = new JPanel(new BorderLayout(6, 0));
+		summary.setAlignmentX(Component.LEFT_ALIGNMENT);
+		summary.setMaximumSize(new Dimension(Integer.MAX_VALUE, Short.MAX_VALUE));
+		summary.setOpaque(false);
 		JPanel stack = new JPanel();
+		stack.setAlignmentX(Component.LEFT_ALIGNMENT);
+		stack.setMaximumSize(new Dimension(Integer.MAX_VALUE, Short.MAX_VALUE));
 		stack.setOpaque(false);
 		stack.setLayout(new BoxLayout(stack, BoxLayout.Y_AXIS));
 		stack.add(goalHeader(progress));
 		String rank = progress.isNextRecommended() ? "Recommended #" + progress.getRecommendationRank() + " - " : "";
-		stack.add(label(rank + goal.getTier().getDisplayName() + " - " + progress.getStatusText(), 10, Font.PLAIN, MUTED));
+		stack.add(label(rank + goal.getTier().getDisplayName() + " - " + progress.getStatusText(), GOAL_META_SIZE, Font.PLAIN, MUTED));
+
+		summary.add(checkbox, BorderLayout.WEST);
+		summary.add(stack, BorderLayout.CENTER);
+		card.add(summary);
 		if (isExpanded(goal))
 		{
-			stack.add(goalDetails(progress));
+			card.add(goalDetails(progress));
 		}
-
-		card.add(checkbox, BorderLayout.WEST);
-		card.add(stack, BorderLayout.CENTER);
 		return card;
 	}
 
@@ -301,7 +319,9 @@ final class MainframePanel extends PluginPanel
 		header.setOpaque(false);
 		JButton expand = new JButton(isExpanded(goal) ? "-" : "+");
 		expand.setFocusable(false);
+		expand.setFont(expand.getFont().deriveFont(Font.BOLD, (float) GOAL_META_SIZE));
 		expand.setMargin(new Insets(0, 4, 0, 4));
+		expand.setPreferredSize(new Dimension(28, 24));
 		expand.setToolTipText(isExpanded(goal) ? "Hide details" : "Show details");
 		expand.addActionListener(event ->
 		{
@@ -311,11 +331,12 @@ final class MainframePanel extends PluginPanel
 			}
 			else
 			{
+				expandedGoalIds.clear();
 				expandedGoalIds.add(goal.getId());
 			}
 			rebuild();
 		});
-		header.add(label(goal.getTitle(), 12, Font.BOLD, progress.isComplete() ? DONE : TEXT), BorderLayout.CENTER);
+		header.add(html(goal.getTitle(), GOAL_TITLE_SIZE, Font.BOLD, progress.isComplete() ? DONE : TEXT, 78), BorderLayout.CENTER);
 		header.add(expand, BorderLayout.EAST);
 		return header;
 	}
@@ -324,9 +345,11 @@ final class MainframePanel extends PluginPanel
 	{
 		RoadmapGoal goal = progress.getGoal();
 		JPanel details = new JPanel();
+		details.setAlignmentX(Component.LEFT_ALIGNMENT);
+		details.setMaximumSize(new Dimension(Integer.MAX_VALUE, Short.MAX_VALUE));
 		details.setOpaque(false);
 		details.setLayout(new BoxLayout(details, BoxLayout.Y_AXIS));
-		details.setBorder(BorderFactory.createEmptyBorder(6, 0, 0, 0));
+		details.setBorder(BorderFactory.createEmptyBorder(10, 0, 0, 0));
 		details.add(detailBlock("[i] Why", goal.getDescription(), MUTED));
 
 		if (!progress.isComplete() && !progress.getMissingRequirements().isEmpty())
@@ -344,10 +367,12 @@ final class MainframePanel extends PluginPanel
 	private JPanel detailBlock(String title, String text, Color color)
 	{
 		JPanel block = new JPanel();
+		block.setAlignmentX(Component.LEFT_ALIGNMENT);
+		block.setMaximumSize(new Dimension(Integer.MAX_VALUE, Short.MAX_VALUE));
 		block.setOpaque(false);
 		block.setLayout(new BoxLayout(block, BoxLayout.Y_AXIS));
-		block.setBorder(BorderFactory.createEmptyBorder(3, 0, 4, 0));
-		block.add(label(title, 10, Font.BOLD, ACCENT));
+		block.setBorder(BorderFactory.createEmptyBorder(5, 0, 6, 0));
+		block.add(label(title, DETAIL_SIZE, Font.BOLD, ACCENT));
 		block.add(html(text, color));
 		return block;
 	}
@@ -421,6 +446,7 @@ final class MainframePanel extends PluginPanel
 		JPanel card = card();
 		card.setLayout(new BorderLayout(4, 4));
 		JTextField title = new JTextField();
+		title.setFont(title.getFont().deriveFont(Font.PLAIN, (float) META_SIZE));
 		title.setToolTipText("Custom goal title");
 
 		Map<String, GoalCategory> categories = new LinkedHashMap<>();
@@ -430,7 +456,9 @@ final class MainframePanel extends PluginPanel
 		categories.put(GoalCategory.GEAR_GOALS.getDisplayName(), GoalCategory.GEAR_GOALS);
 		categories.put(GoalCategory.QUEST_CLUSTERS.getDisplayName(), GoalCategory.QUEST_CLUSTERS);
 		JComboBox<String> category = new JComboBox<>(categories.keySet().toArray(new String[0]));
+		category.setFont(category.getFont().deriveFont(Font.PLAIN, (float) META_SIZE));
 		JButton add = new JButton("Add");
+		add.setFont(add.getFont().deriveFont(Font.PLAIN, (float) META_SIZE));
 		add.addActionListener(event ->
 		{
 			String value = title.getText().trim();
@@ -458,11 +486,13 @@ final class MainframePanel extends PluginPanel
 
 		JCheckBox checkbox = new JCheckBox(goal.getTitle());
 		checkbox.setOpaque(false);
+		checkbox.setFont(checkbox.getFont().deriveFont(Font.BOLD, (float) GOAL_TITLE_SIZE));
 		checkbox.setForeground(goal.isComplete() ? DONE : TEXT);
 		checkbox.setSelected(goal.isComplete());
 		checkbox.addActionListener(event -> updateCustomGoal(goal.withComplete(checkbox.isSelected())));
 
 		JButton edit = new JButton("Edit");
+		edit.setFont(edit.getFont().deriveFont(Font.PLAIN, (float) META_SIZE));
 		edit.addActionListener(event ->
 		{
 			String value = JOptionPane.showInputDialog(this, "Edit custom goal", goal.getTitle());
@@ -473,6 +503,7 @@ final class MainframePanel extends PluginPanel
 		});
 
 		JButton delete = new JButton("Delete");
+		delete.setFont(delete.getFont().deriveFont(Font.PLAIN, (float) META_SIZE));
 		delete.addActionListener(event ->
 		{
 			List<CustomGoal> goals = stateStore.getCustomGoals(scope).stream()
@@ -526,7 +557,7 @@ final class MainframePanel extends PluginPanel
 
 	private JLabel emptyLabel(String text)
 	{
-		JLabel label = label(text, 11, Font.PLAIN, MUTED);
+		JLabel label = label(text, META_SIZE, Font.PLAIN, MUTED);
 		label.setBorder(BorderFactory.createEmptyBorder(4, 0, 4, 0));
 		return label;
 	}
@@ -541,28 +572,40 @@ final class MainframePanel extends PluginPanel
 
 	private JLabel html(String text, Color color)
 	{
-		JLabel label = label(htmlText(text), 10, Font.PLAIN, color);
+		return html(text, DETAIL_SIZE, Font.PLAIN, color, 34);
+	}
+
+	private JLabel html(String text, int size, int style, Color color, int wrapInset)
+	{
+		JLabel label = label(htmlText(text, size, style, color, wrapInset), size, style, color);
 		return label;
 	}
 
-	private String htmlText(String text)
+	private String htmlText(String text, int size, int style, Color color, int wrapInset)
 	{
-		return "<html><body style='width:" + wrapWidth() + "px'>" + escape(text).replace("\n", "<br>") + "</body></html>";
+		String weight = style == Font.BOLD ? "bold" : "normal";
+		return "<html><body style='width:" + wrapWidth(wrapInset) + "px; font-family:sans-serif; font-size:" + size + "pt; font-weight:" + weight + "; color:" + hex(color) + "; margin:0; padding:0;'>"
+			+ escape(text).replace("\n", "<br>") + "</body></html>";
 	}
 
-	private int wrapWidth()
+	private int wrapWidth(int inset)
 	{
 		int width = Math.max(getWidth(), content.getWidth());
 		if (width <= 0)
 		{
 			width = 240;
 		}
-		return Math.max(110, width - 82);
+		return Math.max(110, width - inset);
 	}
 
 	private String escape(String text)
 	{
 		return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
+	}
+
+	private String hex(Color color)
+	{
+		return String.format("#%02x%02x%02x", color.getRed(), color.getGreen(), color.getBlue());
 	}
 
 	private void finish()

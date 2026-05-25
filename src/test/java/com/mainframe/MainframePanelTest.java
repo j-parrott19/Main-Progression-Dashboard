@@ -8,6 +8,7 @@ import java.awt.Component;
 import java.awt.Container;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
@@ -66,9 +67,12 @@ public class MainframePanelTest
 		RoadmapGoal goal = new RoadmapGoal("expandable", "Expandable Goal", GoalCategory.ACCOUNT_UNLOCKS, GoalTier.EARLY, 1,
 			"Expandable detail text", Arrays.asList(RoadmapRequirement.skill(Skill.PRAYER, 43)),
 			Arrays.asList("First detailed step", "Second detailed step"), false);
-		GoalProgress progress = new RoadmapProgressService(Arrays.asList(goal)).evaluate(new FakeProgressContext()).get(0);
+		RoadmapGoal secondGoal = new RoadmapGoal("second-expandable", "Second Expandable Goal", GoalCategory.ACCOUNT_UNLOCKS, GoalTier.EARLY, 2,
+			"Second detail text", Arrays.asList(RoadmapRequirement.skill(Skill.RANGED, 40)),
+			Arrays.asList("Second goal step"), false);
+		List<GoalProgress> progress = new RoadmapProgressService(Arrays.asList(goal, secondGoal)).evaluate(new FakeProgressContext());
 
-		SwingUtilities.invokeAndWait(() -> panel.update("profile", new ProgressSnapshot(Arrays.asList(progress), Collections.emptyList(), "Profile",
+		SwingUtilities.invokeAndWait(() -> panel.update("profile", new ProgressSnapshot(progress, Collections.emptyList(), "Profile",
 			ProgressionPath.OPTIMAL_QUEST_COMPLETION, true, "Local account data", "Unknown")));
 		SwingUtilities.invokeAndWait(() ->
 		{
@@ -79,6 +83,9 @@ public class MainframePanelTest
 			assertTrue(containsText(panel, "Expandable detail text"));
 			assertTrue(containsText(panel, "First detailed step"));
 			assertTrue(containsText(panel, "[*] Tip"));
+			findButton(panel, "+").doClick();
+			assertFalse(containsText(panel, "Expandable detail text"));
+			assertTrue(containsText(panel, "Second detail text"));
 		});
 	}
 
