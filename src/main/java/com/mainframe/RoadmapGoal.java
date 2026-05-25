@@ -14,6 +14,7 @@ final class RoadmapGoal
 	private final int priority;
 	private final String description;
 	private final List<RoadmapRequirement> requirements;
+	private final List<String> howToSteps;
 	private final boolean manualCompletion;
 
 	RoadmapGoal(
@@ -26,6 +27,20 @@ final class RoadmapGoal
 		List<RoadmapRequirement> requirements,
 		boolean manualCompletion)
 	{
+		this(id, title, category, tier, priority, description, requirements, Collections.emptyList(), manualCompletion);
+	}
+
+	RoadmapGoal(
+		String id,
+		String title,
+		GoalCategory category,
+		GoalTier tier,
+		int priority,
+		String description,
+		List<RoadmapRequirement> requirements,
+		List<String> howToSteps,
+		boolean manualCompletion)
+	{
 		this.id = Objects.requireNonNull(id, "id");
 		this.title = Objects.requireNonNull(title, "title");
 		this.category = Objects.requireNonNull(category, "category");
@@ -33,6 +48,7 @@ final class RoadmapGoal
 		this.priority = priority;
 		this.description = Objects.requireNonNull(description, "description");
 		this.requirements = Collections.unmodifiableList(new ArrayList<>(requirements));
+		this.howToSteps = Collections.unmodifiableList(new ArrayList<>(howToSteps));
 		this.manualCompletion = manualCompletion;
 	}
 
@@ -71,9 +87,13 @@ final class RoadmapGoal
 		return requirements;
 	}
 
+	List<String> getHowToSteps()
+	{
+		return howToSteps;
+	}
+
 	boolean isManualCompletion()
 	{
 		return manualCompletion;
 	}
 }
-

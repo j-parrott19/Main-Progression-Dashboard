@@ -36,7 +36,7 @@ final class InMemoryMainframeStateStore implements MainframeStateStore
 	@Override
 	public ProgressionPath getProgressionPath(String scope)
 	{
-		return paths.getOrDefault(scope, ProgressionPath.BALANCED);
+		return paths.getOrDefault(scope, ProgressionPath.OPTIMAL_QUEST_COMPLETION);
 	}
 
 	@Override

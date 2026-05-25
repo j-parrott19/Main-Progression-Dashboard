@@ -2,6 +2,7 @@ package com.mainframe;
 
 enum ProgressionPath
 {
+	OPTIMAL_QUEST_COMPLETION("Optimal Quest Completion", "Prioritizes efficient quest and unlock routing for players who are not sure what to pick."),
 	BALANCED("Balanced"),
 	BOSSING("Bossing"),
 	PVP("PvP"),
@@ -9,15 +10,27 @@ enum ProgressionPath
 	MAXING("Maxing");
 
 	private final String displayName;
+	private final String description;
 
 	ProgressionPath(String displayName)
 	{
+		this(displayName, displayName + " priorities.");
+	}
+
+	ProgressionPath(String displayName, String description)
+	{
 		this.displayName = displayName;
+		this.description = description;
 	}
 
 	String getDisplayName()
 	{
 		return displayName;
+	}
+
+	String getDescription()
+	{
+		return description;
 	}
 
 	@Override
@@ -30,7 +43,7 @@ enum ProgressionPath
 	{
 		if (value == null || value.trim().isEmpty())
 		{
-			return BALANCED;
+			return OPTIMAL_QUEST_COMPLETION;
 		}
 
 		for (ProgressionPath path : values())
@@ -41,6 +54,6 @@ enum ProgressionPath
 			}
 		}
 
-		return BALANCED;
+		return OPTIMAL_QUEST_COMPLETION;
 	}
 }

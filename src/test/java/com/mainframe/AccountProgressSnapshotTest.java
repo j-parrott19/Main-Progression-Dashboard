@@ -47,13 +47,23 @@ public class AccountProgressSnapshotTest
 	{
 		InMemoryMainframeStateStore store = new InMemoryMainframeStateStore();
 
-		assertEquals(ProgressionPath.BALANCED, store.getProgressionPath("profile"));
+		assertEquals(ProgressionPath.OPTIMAL_QUEST_COMPLETION, store.getProgressionPath("profile"));
 		assertFalse(store.hasProgressionPath("profile"));
 
 		store.setProgressionPath("profile", ProgressionPath.MAXING);
 
 		assertEquals(ProgressionPath.MAXING, store.getProgressionPath("profile"));
 		assertTrue(store.hasProgressionPath("profile"));
+	}
+
+	@Test
+	public void progressionPathConfigDefaultsToOptimalQuestCompletion()
+	{
+		assertEquals(ProgressionPath.OPTIMAL_QUEST_COMPLETION, ProgressionPath.fromConfigValue(null));
+		assertEquals(ProgressionPath.OPTIMAL_QUEST_COMPLETION, ProgressionPath.fromConfigValue(""));
+		assertEquals(ProgressionPath.OPTIMAL_QUEST_COMPLETION, ProgressionPath.fromConfigValue("unknown"));
+		assertEquals(ProgressionPath.BALANCED, ProgressionPath.fromConfigValue("Balanced"));
+		assertEquals(ProgressionPath.BOSSING, ProgressionPath.fromConfigValue("BOSSING"));
 	}
 
 	@Test

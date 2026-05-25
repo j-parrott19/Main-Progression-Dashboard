@@ -97,6 +97,7 @@ final class MainframePanel extends PluginPanel
 
 		content.add(section("Next Unlocks", nextUnlockCards()));
 		content.add(section(GoalCategory.ACCOUNT_UNLOCKS.getDisplayName(), goalCards(GoalCategory.ACCOUNT_UNLOCKS)));
+		content.add(section(GoalCategory.SIDE_QUEST_UNLOCKS.getDisplayName(), goalCards(GoalCategory.SIDE_QUEST_UNLOCKS)));
 		content.add(section(GoalCategory.SKILL_TARGETS.getDisplayName(), goalCards(GoalCategory.SKILL_TARGETS)));
 		content.add(section(GoalCategory.GEAR_GOALS.getDisplayName(), goalCards(GoalCategory.GEAR_GOALS)));
 		content.add(section(GoalCategory.QUEST_CLUSTERS.getDisplayName(), goalCards(GoalCategory.QUEST_CLUSTERS)));
@@ -169,11 +170,20 @@ final class MainframePanel extends PluginPanel
 	{
 		JPanel card = card();
 		card.setLayout(new GridBagLayout());
-		JLabel title = label("Choose your path", 13, Font.BOLD, TEXT);
-		JLabel detail = html("Mainframe will still track the full account, but this changes what rises to the top first.", MUTED);
+		JLabel title = label("First-time setup", 13, Font.BOLD, TEXT);
+		JLabel detail = html("Not sure? Use Optimal Quest Completion. It prioritizes efficient quest and unlock routing.", MUTED);
 		JComboBox<ProgressionPath> path = new JComboBox<>(ProgressionPath.values());
 		path.setSelectedItem(snapshot.getProgressionPath());
-		JButton save = new JButton("Use Path");
+		JLabel pathDetail = html(snapshot.getProgressionPath().getDescription(), MUTED);
+		path.addActionListener(event ->
+		{
+			ProgressionPath selected = (ProgressionPath) path.getSelectedItem();
+			if (selected != null)
+			{
+				pathDetail.setText(htmlText(selected.getDescription()));
+			}
+		});
+		JButton save = new JButton("Use this path");
 		save.setFocusable(false);
 		save.addActionListener(event ->
 		{
@@ -189,6 +199,7 @@ final class MainframePanel extends PluginPanel
 		stack.setLayout(new BoxLayout(stack, BoxLayout.Y_AXIS));
 		stack.add(title);
 		stack.add(detail);
+		stack.add(pathDetail);
 
 		GridBagConstraints constraints = constraints();
 		constraints.weightx = 1;
@@ -259,10 +270,7 @@ final class MainframePanel extends PluginPanel
 			stateStore.setManualComplete(scope, goal.getId(), checkbox.isSelected());
 			for (RoadmapRequirement requirement : goal.getRequirements())
 			{
-				if (requirement.getType() == RequirementType.MANUAL_UNLOCK)
-				{
-					stateStore.setManualComplete(scope, requirement.getManualKey(), checkbox.isSelected());
-				}
+				setManualRequirementComplete(requirement, checkbox.isSelected());
 			}
 			manualRefresh.accept(checkbox.isSelected());
 		});
@@ -279,10 +287,29 @@ final class MainframePanel extends PluginPanel
 		{
 			stack.add(html("Needs: " + String.join(", ", progress.getMissingRequirements()), TEXT));
 		}
+		if (!goal.getHowToSteps().isEmpty())
+		{
+			for (int i = 0; i < goal.getHowToSteps().size(); i++)
+			{
+				stack.add(html((i + 1) + ". " + goal.getHowToSteps().get(i), MUTED));
+			}
+		}
 
 		card.add(checkbox, BorderLayout.WEST);
 		card.add(stack, BorderLayout.CENTER);
 		return card;
+	}
+
+	private void setManualRequirementComplete(RoadmapRequirement requirement, boolean complete)
+	{
+		if (requirement.getType() == RequirementType.MANUAL_UNLOCK)
+		{
+			stateStore.setManualComplete(scope, requirement.getManualKey(), complete);
+		}
+		for (RoadmapRequirement option : requirement.getOptions())
+		{
+			setManualRequirementComplete(option, complete);
+		}
 	}
 
 	private List<JPanel> customGoalCards()
@@ -305,6 +332,7 @@ final class MainframePanel extends PluginPanel
 
 		Map<String, GoalCategory> categories = new LinkedHashMap<>();
 		categories.put(GoalCategory.ACCOUNT_UNLOCKS.getDisplayName(), GoalCategory.ACCOUNT_UNLOCKS);
+		categories.put(GoalCategory.SIDE_QUEST_UNLOCKS.getDisplayName(), GoalCategory.SIDE_QUEST_UNLOCKS);
 		categories.put(GoalCategory.SKILL_TARGETS.getDisplayName(), GoalCategory.SKILL_TARGETS);
 		categories.put(GoalCategory.GEAR_GOALS.getDisplayName(), GoalCategory.GEAR_GOALS);
 		categories.put(GoalCategory.QUEST_CLUSTERS.getDisplayName(), GoalCategory.QUEST_CLUSTERS);
@@ -420,8 +448,13 @@ final class MainframePanel extends PluginPanel
 
 	private JLabel html(String text, Color color)
 	{
-		JLabel label = label("<html><body style='width:" + wrapWidth() + "px'>" + escape(text) + "</body></html>", 10, Font.PLAIN, color);
+		JLabel label = label(htmlText(text), 10, Font.PLAIN, color);
 		return label;
+	}
+
+	private String htmlText(String text)
+	{
+		return "<html><body style='width:" + wrapWidth() + "px'>" + escape(text) + "</body></html>";
 	}
 
 	private int wrapWidth()

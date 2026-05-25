@@ -9,6 +9,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.concurrent.atomic.AtomicReference;
 import javax.swing.JComboBox;
+import javax.swing.JLabel;
 import javax.swing.SwingUtilities;
 import net.runelite.api.Skill;
 import org.junit.Test;
@@ -25,8 +26,34 @@ public class MainframePanelTest
 		GoalProgress progress = new RoadmapProgressService(Arrays.asList(goal)).evaluate(new FakeProgressContext()).get(0);
 
 		SwingUtilities.invokeAndWait(() -> panel.update("profile", new ProgressSnapshot(Arrays.asList(progress), Collections.emptyList(), "Profile",
-			ProgressionPath.BALANCED, false, "Local account data", "Unknown")));
-		SwingUtilities.invokeAndWait(() -> assertTrue(panel.getComponentCount() > 0));
+			ProgressionPath.OPTIMAL_QUEST_COMPLETION, false, "Local account data", "Unknown")));
+		SwingUtilities.invokeAndWait(() ->
+		{
+			assertTrue(panel.getComponentCount() > 0);
+			assertTrue(containsText(panel, "First-time setup"));
+			assertTrue(containsText(panel, "Optimal Quest Completion"));
+			@SuppressWarnings("unchecked")
+			JComboBox<ProgressionPath> combo = (JComboBox<ProgressionPath>) findFirst(panel, JComboBox.class);
+			assertEquals(ProgressionPath.OPTIMAL_QUEST_COMPLETION, combo.getSelectedItem());
+		});
+	}
+
+	@Test
+	public void panelRendersSideQuestUnlockSection() throws Exception
+	{
+		InMemoryMainframeStateStore store = new InMemoryMainframeStateStore();
+		MainframePanel panel = new MainframePanel(store, ignored -> { }, () -> { }, ignored -> { }, true);
+		RoadmapGoal goal = new RoadmapGoal("dwarf-cannon", "Dwarf Cannon", GoalCategory.SIDE_QUEST_UNLOCKS, GoalTier.EARLY, 1,
+			"Cannon unlock", Arrays.asList(RoadmapRequirement.skill(Skill.RANGED, 1)), false);
+		GoalProgress progress = new RoadmapProgressService(Arrays.asList(goal)).evaluate(new FakeProgressContext()).get(0);
+
+		SwingUtilities.invokeAndWait(() -> panel.update("profile", new ProgressSnapshot(Arrays.asList(progress), Collections.emptyList(), "Profile",
+			ProgressionPath.OPTIMAL_QUEST_COMPLETION, true, "Local account data", "Unknown")));
+		SwingUtilities.invokeAndWait(() ->
+		{
+			assertTrue(containsText(panel, "Side Quest Unlocks"));
+			assertTrue(containsText(panel, "Dwarf Cannon"));
+		});
 	}
 
 	@Test
@@ -87,5 +114,21 @@ public class MainframePanelTest
 			}
 		}
 		return null;
+	}
+
+	private static boolean containsText(Container container, String text)
+	{
+		for (Component component : container.getComponents())
+		{
+			if (component instanceof JLabel && ((JLabel) component).getText().contains(text))
+			{
+				return true;
+			}
+			if (component instanceof Container && containsText((Container) component, text))
+			{
+				return true;
+			}
+		}
+		return false;
 	}
 }

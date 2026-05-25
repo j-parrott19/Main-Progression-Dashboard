@@ -14,12 +14,22 @@ final class RoadmapProgressService
 	private static final int RECOMMENDATION_LIMIT = 5;
 	private static final Set<String> WIKI_FIRST_GOALS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
 		"prayer-43",
+		"druidic-ritual",
+		"waterfall-quest",
+		"witchs-house",
+		"fight-arena",
+		"tree-gnome-village",
+		"grand-tree",
+		"priest-in-peril",
+		"ghosts-ahoy",
 		"lost-city",
+		"fairytale-i",
 		"fairy-rings",
 		"dragon-scimitar-access",
 		"ava-device",
 		"recipe-for-disaster-start",
 		"dragon-scimitar",
+		"dragon-defender",
 		"barrows-gloves",
 		"prayer-70",
 		"kings-ransom",
@@ -35,7 +45,7 @@ final class RoadmapProgressService
 
 	List<GoalProgress> evaluate(ProgressContext context)
 	{
-		return evaluate(AccountProgressSnapshot.fromContext(context, ProgressionPath.BALANCED));
+		return evaluate(AccountProgressSnapshot.fromContext(context, ProgressionPath.OPTIMAL_QUEST_COMPLETION));
 	}
 
 	List<GoalProgress> evaluate(AccountProgressSnapshot context)
@@ -105,7 +115,23 @@ final class RoadmapProgressService
 	{
 		for (RoadmapRequirement requirement : goal.getRequirements())
 		{
-			if (requirement.getType() == RequirementType.MANUAL_UNLOCK && goal.getId().equals(requirement.getManualKey()))
+			if (containsManualRequirement(requirement, goal.getId()))
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private static boolean containsManualRequirement(RoadmapRequirement requirement, String manualKey)
+	{
+		if (requirement.getType() == RequirementType.MANUAL_UNLOCK && manualKey.equals(requirement.getManualKey()))
+		{
+			return true;
+		}
+		for (RoadmapRequirement option : requirement.getOptions())
+		{
+			if (containsManualRequirement(option, manualKey))
 			{
 				return true;
 			}
@@ -134,6 +160,9 @@ final class RoadmapProgressService
 
 		switch (context.getProgressionPath())
 		{
+			case OPTIMAL_QUEST_COMPLETION:
+				score += optimalQuestCompletionWeight(goal);
+				break;
 			case BOSSING:
 				score += bossingWeight(goal);
 				score += Math.min(context.getHiscoreMetric("TZTOK_JAD"), 1) * 4.0d;
@@ -199,6 +228,40 @@ final class RoadmapProgressService
 		if (context.getCombatLevel() >= 70 && goal.getCategory() == GoalCategory.GEAR_GOALS)
 		{
 			score += 4.0d;
+		}
+		return score;
+	}
+
+	private static double optimalQuestCompletionWeight(RoadmapGoal goal)
+	{
+		double score = 0.0d;
+		if (goal.getCategory() == GoalCategory.QUEST_CLUSTERS)
+		{
+			score += 30.0d;
+		}
+		if (goal.getCategory() == GoalCategory.ACCOUNT_UNLOCKS)
+		{
+			score += 22.0d;
+		}
+		if (goal.getCategory() == GoalCategory.SIDE_QUEST_UNLOCKS)
+		{
+			score += 14.0d;
+		}
+		if (goal.getTier() == GoalTier.EARLY)
+		{
+			score += 10.0d;
+		}
+		if (matchesAny(goal, "druidic", "waterfall", "witchs-house", "fight-arena", "tree-gnome", "grand-tree", "priest-in-peril"))
+		{
+			score += 24.0d;
+		}
+		if (matchesAny(goal, "fairy", "ghosts-ahoy", "lost-city", "animal-magnetism", "dragon-scimitar-access", "recipe", "barrows-gloves"))
+		{
+			score += 20.0d;
+		}
+		if (matchesAny(goal, "tears-of-guthix", "dwarf-cannon", "bone-voyage", "family-crest", "horror-from-the-deep"))
+		{
+			score += 10.0d;
 		}
 		return score;
 	}
@@ -295,7 +358,33 @@ final class RoadmapProgressService
 	{
 		for (RoadmapRequirement requirement : goal.getRequirements())
 		{
-			if (requirement.getType() == RequirementType.SKILL_LEVEL && isCombatSkill(requirement.getSkill()))
+			if (hasCombatRequirement(requirement))
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private static boolean hasCombatRequirement(RoadmapRequirement requirement)
+	{
+		if (requirement.getType() == RequirementType.SKILL_LEVEL)
+		{
+			return isCombatSkill(requirement.getSkill());
+		}
+		if (requirement.getType() == RequirementType.SKILL_TOTAL)
+		{
+			for (net.runelite.api.Skill skill : requirement.getSkills())
+			{
+				if (isCombatSkill(skill))
+				{
+					return true;
+				}
+			}
+		}
+		for (RoadmapRequirement option : requirement.getOptions())
+		{
+			if (hasCombatRequirement(option))
 			{
 				return true;
 			}
