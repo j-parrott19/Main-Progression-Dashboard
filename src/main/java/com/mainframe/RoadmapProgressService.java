@@ -1,13 +1,31 @@
 package com.mainframe;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 final class RoadmapProgressService
 {
 	private static final int RECOMMENDATION_LIMIT = 5;
+	private static final Set<String> WIKI_FIRST_GOALS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
+		"prayer-43",
+		"lost-city",
+		"fairy-rings",
+		"dragon-scimitar-access",
+		"ava-device",
+		"recipe-for-disaster-start",
+		"dragon-scimitar",
+		"barrows-gloves",
+		"prayer-70",
+		"kings-ransom",
+		"piety",
+		"fire-cape"
+	)));
 	private final List<RoadmapGoal> goals;
 
 	RoadmapProgressService(List<RoadmapGoal> goals)
@@ -26,11 +44,19 @@ final class RoadmapProgressService
 			.map(goal -> evaluateGoal(goal, context))
 			.collect(Collectors.toCollection(ArrayList::new));
 
-		progress.stream()
+		List<GoalProgress> recommended = progress.stream()
 			.filter(goal -> !goal.isComplete())
 			.sorted(recommendationComparator(context))
 			.limit(RECOMMENDATION_LIMIT)
-			.forEach(goal -> goal.setNextRecommended(true));
+			.collect(Collectors.toList());
+
+		for (int i = 0; i < recommended.size(); i++)
+		{
+			GoalProgress goal = recommended.get(i);
+			goal.setNextRecommended(true);
+			goal.setRecommendationRank(i + 1);
+			goal.setRecommendationScore(recommendationScore(goal, context));
+		}
 
 		progress.sort(displayComparator());
 		return progress;
@@ -38,11 +64,17 @@ final class RoadmapProgressService
 
 	private GoalProgress evaluateGoal(RoadmapGoal goal, ProgressContext context)
 	{
-		int total = goal.getRequirements().size();
+		int total = 0;
 		int complete = 0;
 		List<String> missing = new ArrayList<>();
 		for (RoadmapRequirement requirement : goal.getRequirements())
 		{
+			if (requirement.getType() == RequirementType.TEXT_ONLY)
+			{
+				missing.add(requirement.getLabel());
+				continue;
+			}
+			total++;
 			if (requirement.isComplete(context))
 			{
 				complete++;
@@ -98,6 +130,7 @@ final class RoadmapProgressService
 		score -= progress.isBlocked() ? 35.0d : 0.0d;
 		score -= goal.getTier().getSortOrder() * 4.0d;
 		score -= goal.getPriority() / 1000.0d;
+		score += wikiFirstWeight(goal, context);
 
 		switch (context.getProgressionPath())
 		{
@@ -122,6 +155,33 @@ final class RoadmapProgressService
 				break;
 		}
 
+		return score;
+	}
+
+	private static double wikiFirstWeight(RoadmapGoal goal, AccountProgressSnapshot context)
+	{
+		if (!WIKI_FIRST_GOALS.contains(goal.getId()))
+		{
+			return 0.0d;
+		}
+
+		double score = 18.0d;
+		if (goal.getTier() == GoalTier.EARLY)
+		{
+			score += 8.0d;
+		}
+		if (context.getTotalLevel() < 1250 && goal.getCategory() != GoalCategory.GEAR_GOALS)
+		{
+			score += 6.0d;
+		}
+		if ("fairy-rings".equals(goal.getId()))
+		{
+			score += 18.0d;
+		}
+		if ("dragon-scimitar-access".equals(goal.getId()))
+		{
+			score += 10.0d;
+		}
 		return score;
 	}
 
@@ -165,6 +225,10 @@ final class RoadmapProgressService
 		if (matchesAny(goal, "fire", "piety", "rigour", "augury", "dragon-slayer", "vorkath", "blowpipe", "trident"))
 		{
 			score += 12.0d;
+		}
+		if (matchesAny(goal, "barrows-gloves", "dragon-scimitar-access", "fairy-rings"))
+		{
+			score += 10.0d;
 		}
 		return score;
 	}

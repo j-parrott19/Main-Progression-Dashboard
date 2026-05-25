@@ -26,11 +26,15 @@ final class RoadmapCatalog
 			"Protection prayers make questing and early bosses much smoother.", false, skill(Skill.PRAYER, 43)));
 		goals.add(goal("ava-device", "Ava's Device", GoalCategory.ACCOUNT_UNLOCKS, GoalTier.EARLY, 20,
 			"A ranged quality-of-life unlock from Animal Magnetism.", true, quest(Quest.ANIMAL_MAGNETISM), manual("ava-device", "Claim Ava's device")));
-		goals.add(goal("dragon-scimitar", "Dragon Scimitar", GoalCategory.GEAR_GOALS, GoalTier.EARLY, 30,
-			"Core early melee weapon after Monkey Madness I.", true, quest(Quest.MONKEY_MADNESS_I), manual("dragon-scimitar", "Buy or equip dragon scimitar")));
+		goals.add(goal("dragon-scimitar-access", "Dragon Scimitar Access", GoalCategory.ACCOUNT_UNLOCKS, GoalTier.EARLY, 30,
+			"Monkey Madness I unlocks the ability to buy and use the classic early melee weapon.", true,
+			quest(Quest.MONKEY_MADNESS_I), manual("dragon-scimitar-access", "Dragon scimitar access unlocked")));
+		goals.add(goal("dragon-scimitar", "Own Dragon Scimitar", GoalCategory.GEAR_GOALS, GoalTier.EARLY, 35,
+			"Core early melee weapon after Monkey Madness I. Auto-checks when seen in inventory, equipment, or a loaded bank.",
+			true, quest(Quest.MONKEY_MADNESS_I), manual("dragon-scimitar", "Own dragon scimitar")));
 		goals.add(goal("fairy-rings", "Fairy Rings", GoalCategory.ACCOUNT_UNLOCKS, GoalTier.EARLY, 40,
-			"Fast travel network unlocked after starting Fairytale II.", true,
-			quest(Quest.FAIRYTALE_I__GROWING_PAINS), text("Start Fairytale II and unlock fairy rings"), manual("fairy-rings", "Fairy rings usable")));
+			"Fast travel network unlocked after starting Fairytale II. Auto-checks after a confirmed fairy-ring use or completed Fairytale II.",
+			true, manual("fairy-rings", "Fairy rings usable"), text("If this is not checked automatically, mark it once the Fairy Godfather has granted access.")));
 		goals.add(goal("fighter-torso", "Fighter Torso", GoalCategory.GEAR_GOALS, GoalTier.EARLY, 50,
 			"Strong melee body slot before high-cost upgrades.", true, manual("fighter-torso", "Earn fighter torso")));
 		goals.add(goal("dragon-defender", "Dragon Defender", GoalCategory.ACCOUNT_UNLOCKS, GoalTier.EARLY, 60,
@@ -101,4 +105,3 @@ final class RoadmapCatalog
 		return new RoadmapGoal(id, title, category, tier, priority, description, Arrays.asList(requirements), manualCompletion);
 	}
 }
-

@@ -9,6 +9,7 @@ import java.util.Collections;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import net.runelite.api.Quest;
 import net.runelite.api.Skill;
 import org.junit.Test;
@@ -49,6 +50,21 @@ public class RoadmapProgressServiceTest
 	}
 
 	@Test
+	public void textOnlyRequirementsExplainWithoutBlockingCompletion()
+	{
+		RoadmapGoal goal = new RoadmapGoal("fairy-rings", "Fairy Rings", GoalCategory.ACCOUNT_UNLOCKS, GoalTier.EARLY, 1,
+			"", Arrays.asList(RoadmapRequirement.manual("fairy-rings", "Fairy rings usable"),
+			RoadmapRequirement.text("Mark manually once access is granted")), true);
+
+		GoalProgress progress = new RoadmapProgressService(Arrays.asList(goal))
+			.evaluate(new FakeProgressContext().manual("fairy-rings"))
+			.get(0);
+
+		assertTrue(progress.isComplete());
+		assertEquals("Done", progress.getStatusText());
+	}
+
+	@Test
 	public void recommendationsPreferCloserUnblockedGoals()
 	{
 		RoadmapGoal far = new RoadmapGoal("far", "Far", GoalCategory.SKILL_TARGETS, GoalTier.LATE, 1,
@@ -81,6 +97,27 @@ public class RoadmapProgressServiceTest
 		assertTrue(isRecommended(goals, ProgressionPath.BALANCED, "piety"));
 	}
 
+	@Test
+	public void recommendationRanksExposePathSpecificOrder()
+	{
+		List<RoadmapGoal> goals = Arrays.asList(
+			goal("fairy-rings", "Fairy Rings", GoalCategory.ACCOUNT_UNLOCKS, RoadmapRequirement.manual("fairy-rings", "Fairy rings usable")),
+			goal("fire-cape", "Fire Cape", GoalCategory.ACCOUNT_UNLOCKS, RoadmapRequirement.skill(Skill.RANGED, 70)),
+			goal("dragon-scimitar-access", "Dragon Scimitar Access", GoalCategory.ACCOUNT_UNLOCKS, RoadmapRequirement.quest(Quest.MONKEY_MADNESS_I)),
+			goal("construction-83", "83 Construction", GoalCategory.SKILL_TARGETS, RoadmapRequirement.skill(Skill.CONSTRUCTION, 83)),
+			goal("quest-cape-path", "Quest Cape Path", GoalCategory.QUEST_CLUSTERS, RoadmapRequirement.manual("quest-cape-path", "Quest cape path planned")),
+			goal("whip", "Abyssal Whip", GoalCategory.GEAR_GOALS, RoadmapRequirement.manual("whip", "Own abyssal whip")));
+
+		List<String> bossing = recommendedIds(goals, ProgressionPath.BOSSING);
+		List<String> maxing = recommendedIds(goals, ProgressionPath.MAXING);
+		List<String> completion = recommendedIds(goals, ProgressionPath.COMPLETION);
+
+		assertEquals("fairy-rings", bossing.get(0));
+		assertTrue(bossing.indexOf("fire-cape") < bossing.indexOf("whip"));
+		assertTrue(maxing.indexOf("construction-83") < maxing.indexOf("fire-cape"));
+		assertEquals("quest-cape-path", completion.get(0));
+	}
+
 	private static boolean isRecommended(List<RoadmapGoal> goals, ProgressionPath path, String goalId)
 	{
 		List<GoalProgress> progress = new RoadmapProgressService(goals).evaluate(snapshot(path));
@@ -89,6 +126,15 @@ public class RoadmapProgressServiceTest
 			.findFirst()
 			.get()
 			.isNextRecommended();
+	}
+
+	private static List<String> recommendedIds(List<RoadmapGoal> goals, ProgressionPath path)
+	{
+		return new RoadmapProgressService(goals).evaluate(snapshot(path)).stream()
+			.filter(GoalProgress::isNextRecommended)
+			.sorted(java.util.Comparator.comparingInt(GoalProgress::getRecommendationRank))
+			.map(progress -> progress.getGoal().getId())
+			.collect(Collectors.toList());
 	}
 
 	private static AccountProgressSnapshot snapshot(ProgressionPath path)

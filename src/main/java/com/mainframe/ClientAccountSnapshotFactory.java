@@ -14,6 +14,7 @@ import net.runelite.api.Player;
 import net.runelite.api.Quest;
 import net.runelite.api.QuestState;
 import net.runelite.api.Skill;
+import net.runelite.api.Varbits;
 import net.runelite.api.vars.AccountType;
 
 final class ClientAccountSnapshotFactory
@@ -49,6 +50,7 @@ final class ClientAccountSnapshotFactory
 					completedQuests.add(quest);
 				}
 			}
+			effectiveManualKeys.addAll(questAccessKeys(completedQuests));
 			Player player = client.getLocalPlayer();
 			if (player != null)
 			{
@@ -60,7 +62,8 @@ final class ClientAccountSnapshotFactory
 			{
 				accountType = clientAccountType.name().replace('_', ' ');
 			}
-			effectiveManualKeys.addAll(visibleUnlockKeys(client));
+			effectiveManualKeys.addAll(observedUnlockKeys(client));
+			effectiveManualKeys.addAll(varbitUnlockKeys(client));
 		}
 		else
 		{
@@ -74,12 +77,18 @@ final class ClientAccountSnapshotFactory
 			progressionPath, progressionPathChosen, hiscoreData);
 	}
 
-	private static Set<String> visibleUnlockKeys(Client client)
+	private static Set<String> observedUnlockKeys(Client client)
 	{
 		Set<Integer> visibleItemIds = new HashSet<>();
 		addContainerItems(client, visibleItemIds, InventoryID.INVENTORY);
 		addContainerItems(client, visibleItemIds, InventoryID.EQUIPMENT);
+		addContainerItems(client, visibleItemIds, InventoryID.BANK);
 
+		return observedUnlockKeys(visibleItemIds);
+	}
+
+	static Set<String> observedUnlockKeys(Set<Integer> visibleItemIds)
+	{
 		Set<String> keys = new HashSet<>();
 		addIfContains(keys, visibleItemIds, "ava-device", ItemID.AVAS_DEVICE, ItemID.AVAS_ATTRACTOR, ItemID.AVAS_ACCUMULATOR, ItemID.AVAS_ASSEMBLER);
 		addIfContains(keys, visibleItemIds, "dragon-scimitar", ItemID.DRAGON_SCIMITAR, ItemID.DRAGON_SCIMITAR_OR, ItemID.DRAGON_SCIMITAR_CR);
@@ -93,6 +102,30 @@ final class ClientAccountSnapshotFactory
 		addIfContains(keys, visibleItemIds, "blowpipe", ItemID.TOXIC_BLOWPIPE, ItemID.TOXIC_BLOWPIPE_EMPTY);
 		addIfContains(keys, visibleItemIds, "toxic-trident", ItemID.TRIDENT_OF_THE_SWAMP, ItemID.UNCHARGED_TOXIC_TRIDENT,
 			ItemID.TRIDENT_OF_THE_SWAMP_E, ItemID.UNCHARGED_TOXIC_TRIDENT_E, ItemID.TRIDENT_OF_THE_SWAMP_O);
+		return keys;
+	}
+
+	static Set<String> questAccessKeys(Set<Quest> completedQuests)
+	{
+		Set<String> keys = new HashSet<>();
+		if (completedQuests.contains(Quest.MONKEY_MADNESS_I))
+		{
+			keys.add("dragon-scimitar-access");
+		}
+		if (completedQuests.contains(Quest.FAIRYTALE_II__CURE_A_QUEEN))
+		{
+			keys.add("fairy-rings");
+		}
+		return keys;
+	}
+
+	private static Set<String> varbitUnlockKeys(Client client)
+	{
+		Set<String> keys = new HashSet<>();
+		if (client.getVarbitValue(Varbits.FAIR_RING_LAST_DESTINATION) > 0)
+		{
+			keys.add("fairy-rings");
+		}
 		return keys;
 	}
 

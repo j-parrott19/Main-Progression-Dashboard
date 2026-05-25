@@ -14,6 +14,8 @@ final class GoalProgress
 	private final List<String> missingRequirements;
 	private final String statusText;
 	private boolean nextRecommended;
+	private int recommendationRank;
+	private double recommendationScore;
 
 	GoalProgress(
 		RoadmapGoal goal,
@@ -78,6 +80,26 @@ final class GoalProgress
 		this.nextRecommended = nextRecommended;
 	}
 
+	int getRecommendationRank()
+	{
+		return recommendationRank;
+	}
+
+	void setRecommendationRank(int recommendationRank)
+	{
+		this.recommendationRank = recommendationRank;
+	}
+
+	double getRecommendationScore()
+	{
+		return recommendationScore;
+	}
+
+	void setRecommendationScore(double recommendationScore)
+	{
+		this.recommendationScore = recommendationScore;
+	}
+
 	double getCompletionRatio()
 	{
 		if (totalRequirements == 0)
@@ -87,4 +109,3 @@ final class GoalProgress
 		return (double) completedRequirements / (double) totalRequirements;
 	}
 }
-

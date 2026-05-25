@@ -9,6 +9,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import net.runelite.api.ItemID;
 import net.runelite.api.Quest;
 import net.runelite.api.Skill;
 import org.junit.Test;
@@ -53,5 +54,38 @@ public class AccountProgressSnapshotTest
 
 		assertEquals(ProgressionPath.MAXING, store.getProgressionPath("profile"));
 		assertTrue(store.hasProgressionPath("profile"));
+	}
+
+	@Test
+	public void itemObservationCompletesOwnershipButNotAccessOnlyGoals()
+	{
+		Set<Integer> itemIds = new HashSet<>();
+		itemIds.add(ItemID.DRAGON_SCIMITAR);
+
+		Set<String> keys = ClientAccountSnapshotFactory.observedUnlockKeys(itemIds);
+
+		assertTrue(keys.contains("dragon-scimitar"));
+		assertFalse(keys.contains("dragon-scimitar-access"));
+	}
+
+	@Test
+	public void questCompletionCompletesAccessButNotOwnershipGoals()
+	{
+		Set<Quest> quests = new HashSet<>();
+		quests.add(Quest.MONKEY_MADNESS_I);
+
+		Set<String> keys = ClientAccountSnapshotFactory.questAccessKeys(quests);
+
+		assertTrue(keys.contains("dragon-scimitar-access"));
+		assertFalse(keys.contains("dragon-scimitar"));
+	}
+
+	@Test
+	public void completedFairytaleTwoIsReliableFairyRingAccessEvidence()
+	{
+		Set<Quest> quests = new HashSet<>();
+		quests.add(Quest.FAIRYTALE_II__CURE_A_QUEEN);
+
+		assertTrue(ClientAccountSnapshotFactory.questAccessKeys(quests).contains("fairy-rings"));
 	}
 }

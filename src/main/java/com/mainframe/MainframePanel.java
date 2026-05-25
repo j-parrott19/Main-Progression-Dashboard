@@ -8,6 +8,8 @@ import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.awt.Rectangle;
+import java.util.Comparator;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -23,6 +25,7 @@ import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.Scrollable;
 import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
 import net.runelite.client.ui.PluginPanel;
@@ -43,7 +46,7 @@ final class MainframePanel extends PluginPanel
 	private final boolean showCompletedGoals;
 	private String scope;
 	private ProgressSnapshot snapshot;
-	private final JPanel content = new JPanel();
+	private final JPanel content = new ScrollableContent();
 
 	MainframePanel(
 		MainframeStateStore stateStore,
@@ -103,7 +106,9 @@ final class MainframePanel extends PluginPanel
 
 	private JPanel header()
 	{
-		JPanel header = new JPanel(new BorderLayout(6, 0));
+		JPanel header = new JPanel(new GridBagLayout());
+		header.setAlignmentX(Component.LEFT_ALIGNMENT);
+		header.setMaximumSize(new Dimension(Integer.MAX_VALUE, Short.MAX_VALUE));
 		header.setBackground(BACKGROUND);
 		header.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
 
@@ -118,9 +123,14 @@ final class MainframePanel extends PluginPanel
 		stack.add(account);
 		stack.add(accountSummary);
 		stack.add(importStatus);
+		if (snapshot != null)
+		{
+			stack.add(label("Path: " + snapshot.getProgressionPath().getDisplayName(), 10, Font.BOLD, ACCENT));
+		}
 
 		JComboBox<ProgressionPath> path = new JComboBox<>(ProgressionPath.values());
 		path.setFocusable(false);
+		path.setMaximumSize(new Dimension(Integer.MAX_VALUE, 26));
 		if (snapshot != null)
 		{
 			path.setSelectedItem(snapshot.getProgressionPath());
@@ -135,6 +145,7 @@ final class MainframePanel extends PluginPanel
 		});
 		JButton refresh = new JButton("Refresh");
 		refresh.setFocusable(false);
+		refresh.setMaximumSize(new Dimension(Integer.MAX_VALUE, 26));
 		refresh.addActionListener(event -> refreshRequest.run());
 
 		JPanel actions = new JPanel();
@@ -143,20 +154,27 @@ final class MainframePanel extends PluginPanel
 		actions.add(path);
 		actions.add(refresh);
 
-		header.add(stack, BorderLayout.CENTER);
-		header.add(actions, BorderLayout.EAST);
+		GridBagConstraints constraints = constraints();
+		constraints.insets = new Insets(0, 0, 6, 0);
+		constraints.weightx = 1;
+		header.add(stack, constraints);
+		constraints.gridy = 1;
+		constraints.fill = GridBagConstraints.HORIZONTAL;
+		constraints.insets = new Insets(0, 0, 0, 0);
+		header.add(actions, constraints);
 		return header;
 	}
 
 	private JPanel pathChoiceCard()
 	{
 		JPanel card = card();
-		card.setLayout(new BorderLayout(6, 6));
+		card.setLayout(new GridBagLayout());
 		JLabel title = label("Choose your path", 13, Font.BOLD, TEXT);
 		JLabel detail = html("Mainframe will still track the full account, but this changes what rises to the top first.", MUTED);
 		JComboBox<ProgressionPath> path = new JComboBox<>(ProgressionPath.values());
 		path.setSelectedItem(snapshot.getProgressionPath());
 		JButton save = new JButton("Use Path");
+		save.setFocusable(false);
 		save.addActionListener(event ->
 		{
 			ProgressionPath selected = (ProgressionPath) path.getSelectedItem();
@@ -171,15 +189,24 @@ final class MainframePanel extends PluginPanel
 		stack.setLayout(new BoxLayout(stack, BoxLayout.Y_AXIS));
 		stack.add(title);
 		stack.add(detail);
-		card.add(stack, BorderLayout.CENTER);
-		card.add(path, BorderLayout.NORTH);
-		card.add(save, BorderLayout.EAST);
+
+		GridBagConstraints constraints = constraints();
+		constraints.weightx = 1;
+		card.add(path, constraints);
+		constraints.gridy = 1;
+		constraints.insets = new Insets(6, 1, 1, 1);
+		card.add(stack, constraints);
+		constraints.gridy = 2;
+		constraints.insets = new Insets(6, 1, 1, 1);
+		card.add(save, constraints);
 		return card;
 	}
 
 	private JPanel section(String title, List<JPanel> cards)
 	{
 		JPanel section = new JPanel();
+		section.setAlignmentX(Component.LEFT_ALIGNMENT);
+		section.setMaximumSize(new Dimension(Integer.MAX_VALUE, Short.MAX_VALUE));
 		section.setLayout(new BoxLayout(section, BoxLayout.Y_AXIS));
 		section.setBackground(BACKGROUND);
 		section.setBorder(BorderFactory.createEmptyBorder(5, 8, 8, 8));
@@ -202,6 +229,7 @@ final class MainframePanel extends PluginPanel
 	{
 		return snapshot.getGoals().stream()
 			.filter(GoalProgress::isNextRecommended)
+			.sorted(Comparator.comparingInt(GoalProgress::getRecommendationRank))
 			.map(this::goalCard)
 			.collect(Collectors.toList());
 	}
@@ -219,8 +247,7 @@ final class MainframePanel extends PluginPanel
 	{
 		RoadmapGoal goal = progress.getGoal();
 		JPanel card = card();
-		card.setLayout(new GridBagLayout());
-		GridBagConstraints constraints = constraints();
+		card.setLayout(new BorderLayout(6, 0));
 
 		JCheckBox checkbox = new JCheckBox();
 		checkbox.setOpaque(false);
@@ -240,28 +267,21 @@ final class MainframePanel extends PluginPanel
 			manualRefresh.accept(checkbox.isSelected());
 		});
 
-		card.add(checkbox, constraints);
-		constraints.gridx = 1;
-		constraints.weightx = 1;
-		JLabel title = label(goal.getTitle(), 12, Font.BOLD, progress.isComplete() ? DONE : TEXT);
-		card.add(title, constraints);
-
-		constraints.gridy++;
-		constraints.gridx = 1;
-		JLabel meta = label(goal.getTier().getDisplayName() + " - " + progress.getStatusText(), 10, Font.PLAIN, MUTED);
-		card.add(meta, constraints);
-
-		constraints.gridy++;
-		JLabel description = html(goal.getDescription(), MUTED);
-		card.add(description, constraints);
+		JPanel stack = new JPanel();
+		stack.setOpaque(false);
+		stack.setLayout(new BoxLayout(stack, BoxLayout.Y_AXIS));
+		stack.add(label(goal.getTitle(), 12, Font.BOLD, progress.isComplete() ? DONE : TEXT));
+		String rank = progress.isNextRecommended() ? "Recommended #" + progress.getRecommendationRank() + " - " : "";
+		stack.add(label(rank + goal.getTier().getDisplayName() + " - " + progress.getStatusText(), 10, Font.PLAIN, MUTED));
+		stack.add(html(goal.getDescription(), MUTED));
 
 		if (!progress.isComplete() && !progress.getMissingRequirements().isEmpty())
 		{
-			constraints.gridy++;
-			JLabel missing = html("Needs: " + String.join(", ", progress.getMissingRequirements()), TEXT);
-			card.add(missing, constraints);
+			stack.add(html("Needs: " + String.join(", ", progress.getMissingRequirements()), TEXT));
 		}
 
+		card.add(checkbox, BorderLayout.WEST);
+		card.add(stack, BorderLayout.CENTER);
 		return card;
 	}
 
@@ -364,11 +384,11 @@ final class MainframePanel extends PluginPanel
 	{
 		JPanel card = new JPanel();
 		card.setAlignmentX(Component.LEFT_ALIGNMENT);
-		card.setMaximumSize(new Dimension(Integer.MAX_VALUE, 160));
+		card.setMaximumSize(new Dimension(Integer.MAX_VALUE, Short.MAX_VALUE));
 		card.setBackground(PANEL);
 		card.setBorder(BorderFactory.createCompoundBorder(
 			BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(55, 55, 55)),
-			BorderFactory.createEmptyBorder(6, 6, 6, 6)));
+			BorderFactory.createEmptyBorder(8, 8, 8, 8)));
 		return card;
 	}
 
@@ -400,8 +420,18 @@ final class MainframePanel extends PluginPanel
 
 	private JLabel html(String text, Color color)
 	{
-		JLabel label = label("<html><body style='width:185px'>" + escape(text) + "</body></html>", 10, Font.PLAIN, color);
+		JLabel label = label("<html><body style='width:" + wrapWidth() + "px'>" + escape(text) + "</body></html>", 10, Font.PLAIN, color);
 		return label;
+	}
+
+	private int wrapWidth()
+	{
+		int width = Math.max(getWidth(), content.getWidth());
+		if (width <= 0)
+		{
+			width = 240;
+		}
+		return Math.max(110, width - 82);
 	}
 
 	private String escape(String text)
@@ -413,5 +443,38 @@ final class MainframePanel extends PluginPanel
 	{
 		content.revalidate();
 		content.repaint();
+	}
+
+	private static final class ScrollableContent extends JPanel implements Scrollable
+	{
+		@Override
+		public Dimension getPreferredScrollableViewportSize()
+		{
+			return getPreferredSize();
+		}
+
+		@Override
+		public int getScrollableUnitIncrement(Rectangle visibleRect, int orientation, int direction)
+		{
+			return 16;
+		}
+
+		@Override
+		public int getScrollableBlockIncrement(Rectangle visibleRect, int orientation, int direction)
+		{
+			return Math.max(16, visibleRect.height - 16);
+		}
+
+		@Override
+		public boolean getScrollableTracksViewportWidth()
+		{
+			return true;
+		}
+
+		@Override
+		public boolean getScrollableTracksViewportHeight()
+		{
+			return false;
+		}
 	}
 }
