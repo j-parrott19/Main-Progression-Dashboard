@@ -40,6 +40,7 @@ final class MainframePanel extends PluginPanel
 	private static final Color MUTED = new Color(155, 155, 155);
 	private static final Color ACCENT = new Color(230, 126, 34);
 	private static final Color DONE = new Color(88, 214, 141);
+	private static final Color NEEDED = new Color(255, 85, 85);
 	private static final int TITLE_SIZE = 20;
 	private static final int META_SIZE = 12;
 	private static final int SECTION_SIZE = 16;
@@ -351,17 +352,83 @@ final class MainframePanel extends PluginPanel
 		details.setLayout(new BoxLayout(details, BoxLayout.Y_AXIS));
 		details.setBorder(BorderFactory.createEmptyBorder(10, 0, 0, 0));
 		details.add(detailBlock("[i] Why", goal.getDescription(), MUTED));
-
-		if (!progress.isComplete() && !progress.getMissingRequirements().isEmpty())
-		{
-			details.add(detailBlock("[!] Needs", String.join(", ", progress.getMissingRequirements()), TEXT));
-		}
+		details.add(requirementsBlock(progress));
 		if (!goal.getHowToSteps().isEmpty())
 		{
 			details.add(detailBlock("[>] Steps", numberedSteps(goal.getHowToSteps()), MUTED));
 		}
 		details.add(detailBlock("[*] Tip", tipText(progress), ACCENT));
 		return details;
+	}
+
+	private JPanel requirementsBlock(GoalProgress progress)
+	{
+		JPanel block = new JPanel();
+		block.setAlignmentX(Component.LEFT_ALIGNMENT);
+		block.setMaximumSize(new Dimension(Integer.MAX_VALUE, Short.MAX_VALUE));
+		block.setOpaque(false);
+		block.setLayout(new BoxLayout(block, BoxLayout.Y_AXIS));
+		block.setBorder(BorderFactory.createEmptyBorder(5, 0, 6, 0));
+		block.add(label("[?] Requirements", DETAIL_SIZE, Font.BOLD, ACCENT));
+
+		List<RequirementProgress> met = progress.getRequirementProgresses().stream()
+			.filter(item -> item.isComplete() && !item.isInformational())
+			.collect(Collectors.toList());
+		List<RequirementProgress> needed = progress.getRequirementProgresses().stream()
+			.filter(item -> !item.isComplete() && !item.isInformational())
+			.collect(Collectors.toList());
+		List<RequirementProgress> notes = progress.getRequirementProgresses().stream()
+			.filter(RequirementProgress::isInformational)
+			.collect(Collectors.toList());
+
+		if (!met.isEmpty())
+		{
+			addRequirementGroup(block, "Requirements met:", met, DONE);
+		}
+		if (!needed.isEmpty())
+		{
+			addRequirementGroup(block, "Requirements needed:", needed, NEEDED);
+		}
+		if (!notes.isEmpty())
+		{
+			addRequirementGroup(block, "Notes:", notes, MUTED);
+		}
+		if (met.isEmpty() && needed.isEmpty() && notes.isEmpty())
+		{
+			block.add(html("No tracked requirements.", MUTED));
+		}
+		return block;
+	}
+
+	private void addRequirementGroup(JPanel block, String title, List<RequirementProgress> requirements, Color rowColor)
+	{
+		JLabel groupTitle = label(title, DETAIL_SIZE, Font.BOLD, TEXT);
+		groupTitle.setBorder(BorderFactory.createEmptyBorder(5, 0, 1, 0));
+		block.add(groupTitle);
+		for (RequirementProgress requirement : requirements)
+		{
+			block.add(html(requirementText(requirement), rowColor));
+		}
+	}
+
+	private String requirementText(RequirementProgress requirement)
+	{
+		if (requirement.getOptions().isEmpty())
+		{
+			return requirement.getLabel();
+		}
+
+		List<String> completeOptions = requirement.getOptions().stream()
+			.filter(RequirementProgress::isComplete)
+			.map(RequirementProgress::getLabel)
+			.collect(Collectors.toList());
+		if (!completeOptions.isEmpty())
+		{
+			return requirement.getLabel() + " (met via " + String.join(" OR ", completeOptions) + ")";
+		}
+		return requirement.getLabel() + " (need one: " + requirement.getOptions().stream()
+			.map(RequirementProgress::getLabel)
+			.collect(Collectors.joining(" OR ")) + ")";
 	}
 
 	private JPanel detailBlock(String title, String text, Color color)

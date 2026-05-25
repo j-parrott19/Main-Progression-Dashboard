@@ -82,10 +82,46 @@ public class MainframePanelTest
 			expand.doClick();
 			assertTrue(containsText(panel, "Expandable detail text"));
 			assertTrue(containsText(panel, "First detailed step"));
+			assertTrue(containsText(panel, "Requirements needed:"));
+			assertTrue(containsText(panel, "43 Prayer"));
 			assertTrue(containsText(panel, "[*] Tip"));
 			findButton(panel, "+").doClick();
 			assertFalse(containsText(panel, "Expandable detail text"));
 			assertTrue(containsText(panel, "Second detail text"));
+		});
+	}
+
+	@Test
+	public void expandedGoalDetailsSeparateMetAndNeededRequirements() throws Exception
+	{
+		InMemoryMainframeStateStore store = new InMemoryMainframeStateStore();
+		MainframePanel panel = new MainframePanel(store, ignored -> { }, () -> { }, ignored -> { }, true);
+		RoadmapGoal goal = new RoadmapGoal("defender", "Dragon Defender", GoalCategory.ACCOUNT_UNLOCKS, GoalTier.EARLY, 1,
+			"Defender detail", Arrays.asList(
+				RoadmapRequirement.skill(Skill.ATTACK, 60),
+				RoadmapRequirement.skill(Skill.DEFENCE, 60),
+				RoadmapRequirement.any("Warriors' Guild access",
+					RoadmapRequirement.skillTotal("130 combined Attack + Strength", 130, Skill.ATTACK, Skill.STRENGTH),
+					RoadmapRequirement.skill(Skill.ATTACK, 99),
+					RoadmapRequirement.skill(Skill.STRENGTH, 99)),
+				RoadmapRequirement.manual("dragon-defender", "Earn dragon defender")),
+			Arrays.asList("Farm cyclopes"), true);
+		GoalProgress progress = new RoadmapProgressService(Arrays.asList(goal))
+			.evaluate(new FakeProgressContext().skill(Skill.ATTACK, 60))
+			.get(0);
+
+		SwingUtilities.invokeAndWait(() -> panel.update("profile", new ProgressSnapshot(Arrays.asList(progress), Collections.emptyList(), "Profile",
+			ProgressionPath.OPTIMAL_QUEST_COMPLETION, true, "Local account data", "Unknown")));
+		SwingUtilities.invokeAndWait(() ->
+		{
+			findButton(panel, "+").doClick();
+			assertTrue(containsText(panel, "Requirements met:"));
+			assertTrue(containsText(panel, "60 Attack"));
+			assertTrue(containsText(panel, "Requirements needed:"));
+			assertTrue(containsText(panel, "60 Defence"));
+			assertTrue(containsText(panel, "Warriors' Guild access"));
+			assertTrue(containsText(panel, "need one: 130 combined Attack + Strength OR 99 Attack OR 99 Strength"));
+			assertTrue(containsText(panel, "Earn dragon defender"));
 		});
 	}
 

@@ -77,15 +77,18 @@ final class RoadmapProgressService
 		int total = 0;
 		int complete = 0;
 		List<String> missing = new ArrayList<>();
+		List<RequirementProgress> requirementProgresses = new ArrayList<>();
 		for (RoadmapRequirement requirement : goal.getRequirements())
 		{
+			RequirementProgress requirementProgress = evaluateRequirement(requirement, context);
+			requirementProgresses.add(requirementProgress);
 			if (requirement.getType() == RequirementType.TEXT_ONLY)
 			{
 				missing.add(requirement.getLabel());
 				continue;
 			}
 			total++;
-			if (requirement.isComplete(context))
+			if (requirementProgress.isComplete())
 			{
 				complete++;
 			}
@@ -102,13 +105,23 @@ final class RoadmapProgressService
 			if (!containsManualRequirementForGoal(goal))
 			{
 				missing.add("Mark " + goal.getTitle() + " complete");
+				requirementProgresses.add(new RequirementProgress("Mark " + goal.getTitle() + " complete", false, false, Collections.emptyList()));
 				total++;
 			}
 		}
 
 		boolean blocked = !completeGoal && total > 0 && complete == 0 && goal.getTier() != GoalTier.EARLY;
 		String status = completeGoal ? "Done" : complete + "/" + total + " ready";
-		return new GoalProgress(goal, completeGoal, blocked, complete, total, missing, status);
+		return new GoalProgress(goal, completeGoal, blocked, complete, total, missing, requirementProgresses, status);
+	}
+
+	private static RequirementProgress evaluateRequirement(RoadmapRequirement requirement, ProgressContext context)
+	{
+		List<RequirementProgress> options = requirement.getOptions().stream()
+			.map(option -> evaluateRequirement(option, context))
+			.collect(Collectors.toList());
+		boolean informational = requirement.getType() == RequirementType.TEXT_ONLY;
+		return new RequirementProgress(requirement.getLabel(), requirement.isComplete(context), informational, options);
 	}
 
 	private static boolean containsManualRequirementForGoal(RoadmapGoal goal)

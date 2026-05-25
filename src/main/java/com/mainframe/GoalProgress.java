@@ -12,6 +12,7 @@ final class GoalProgress
 	private final int completedRequirements;
 	private final int totalRequirements;
 	private final List<String> missingRequirements;
+	private final List<RequirementProgress> requirementProgresses;
 	private final String statusText;
 	private boolean nextRecommended;
 	private int recommendationRank;
@@ -24,6 +25,7 @@ final class GoalProgress
 		int completedRequirements,
 		int totalRequirements,
 		List<String> missingRequirements,
+		List<RequirementProgress> requirementProgresses,
 		String statusText)
 	{
 		this.goal = goal;
@@ -32,6 +34,7 @@ final class GoalProgress
 		this.completedRequirements = completedRequirements;
 		this.totalRequirements = totalRequirements;
 		this.missingRequirements = Collections.unmodifiableList(new ArrayList<>(missingRequirements));
+		this.requirementProgresses = Collections.unmodifiableList(new ArrayList<>(requirementProgresses));
 		this.statusText = statusText;
 	}
 
@@ -63,6 +66,11 @@ final class GoalProgress
 	List<String> getMissingRequirements()
 	{
 		return missingRequirements;
+	}
+
+	List<RequirementProgress> getRequirementProgresses()
+	{
+		return requirementProgresses;
 	}
 
 	String getStatusText()
