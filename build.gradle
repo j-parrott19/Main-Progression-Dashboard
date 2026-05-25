@@ -35,6 +35,10 @@ tasks.withType(JavaCompile).configureEach {
 	options.release.set(11)
 }
 
+tasks.withType(Test).configureEach {
+	doNotTrackState("OneDrive can mark Gradle test binary result files as reparse points, which breaks output snapshotting.")
+}
+
 tasks.register('run', JavaExec) {
 	classpath = sourceSets.test.runtimeClasspath
 	mainClass = pluginMainClass
