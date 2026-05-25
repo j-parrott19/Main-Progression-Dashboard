@@ -15,12 +15,6 @@ repositories {
 
 def runeLiteVersion = 'latest.release'
 def pluginMainClass = 'com.mainframe.MainframePluginTest'
-def runeliteHome = providers.gradleProperty('runeliteHome')
-	.orElse(providers.environmentVariable('RUNELITE_HOME'))
-	.orElse("${System.getProperty('user.home')}/.runelite")
-def jagexLauncherPath = providers.gradleProperty('jagexLauncherPath')
-	.orElse(providers.environmentVariable('JAGEX_LAUNCHER_PATH'))
-	.orElse('C:/Program Files (x86)/Jagex Launcher/JagexLauncher.exe')
 
 dependencies {
 	compileOnly group: 'net.runelite', name: 'client', version: runeLiteVersion
@@ -41,68 +35,12 @@ tasks.withType(JavaCompile).configureEach {
 	options.release.set(11)
 }
 
-tasks.named('processResources') {
-	from('runelite-plugin.properties')
-}
-
-tasks.register('runDevelopmentClient', JavaExec) {
-	group = 'application'
-	description = 'Runs the standalone RuneLite development client without the Jagex Launcher.'
-
+tasks.register('run', JavaExec) {
 	classpath = sourceSets.test.runtimeClasspath
 	mainClass = pluginMainClass
 
 	jvmArgs "-ea"
 	args "--developer-mode", "--debug"
-}
-
-tasks.register('sideloadPlugin', Copy) {
-	group = 'application'
-	description = 'Builds the plugin jar and copies it to RuneLite sideloaded plugins for Jagex Launcher testing.'
-
-	dependsOn tasks.named('jar')
-
-	def sideloadDir = runeliteHome.map { new File(it, 'sideloaded-plugins') }
-	from(tasks.named('jar').flatMap { it.archiveFile })
-	into(sideloadDir)
-	rename { "${rootProject.name}-${project.version}.jar" }
-
-	doFirst {
-		def targetDir = sideloadDir.get()
-		targetDir.mkdirs()
-		delete fileTree(dir: targetDir, include: "${rootProject.name}-*.jar")
-	}
-
-	doLast {
-		println "Copied ${rootProject.name}-${project.version}.jar to ${sideloadDir.get()}"
-	}
-}
-
-tasks.register('runViaJagexLauncher') {
-	group = 'application'
-	description = 'Sideloads the plugin and opens the Jagex Launcher so RuneLite can be started from the launcher.'
-
-	dependsOn tasks.named('sideloadPlugin')
-
-	doLast {
-		def launcher = file(jagexLauncherPath.get())
-		if (!launcher.isFile())
-		{
-			throw new GradleException("Jagex Launcher not found at ${launcher}. Set -PjagexLauncherPath=... or JAGEX_LAUNCHER_PATH.")
-		}
-
-		println "Opening Jagex Launcher at ${launcher}"
-		println "Start RuneLite from the Jagex Launcher with client arguments: --developer-mode --debug"
-		exec {
-			commandLine 'powershell', '-NoProfile', '-Command', "Start-Process -FilePath '${launcher.absolutePath.replace("'", "''")}'"
-		}
-	}
-}
-
-tasks.register('run') {
-	group = 'application'
-	description = 'Builds and sideloads the plugin, then opens the Jagex Launcher.'
-	dependsOn tasks.named('runViaJagexLauncher')
 }
 
 tasks.register('shadowJar', Jar) {
