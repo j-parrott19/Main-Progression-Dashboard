@@ -14,12 +14,13 @@ public class MainframePanelTest
 	public void panelBuildsOfflineAndLoggedInStates() throws Exception
 	{
 		InMemoryMainframeStateStore store = new InMemoryMainframeStateStore();
-		MainframePanel panel = new MainframePanel(store, ignored -> { }, () -> { }, true);
+		MainframePanel panel = new MainframePanel(store, ignored -> { }, () -> { }, ignored -> { }, true);
 		RoadmapGoal goal = new RoadmapGoal("prayer-43", "43 Prayer", GoalCategory.SKILL_TARGETS, GoalTier.EARLY, 1,
 			"Protection prayers", Arrays.asList(RoadmapRequirement.skill(Skill.PRAYER, 43)), false);
 		GoalProgress progress = new RoadmapProgressService(Arrays.asList(goal)).evaluate(new FakeProgressContext()).get(0);
 
-		SwingUtilities.invokeAndWait(() -> panel.update("profile", new ProgressSnapshot(Arrays.asList(progress), Collections.emptyList(), "Profile")));
+		SwingUtilities.invokeAndWait(() -> panel.update("profile", new ProgressSnapshot(Arrays.asList(progress), Collections.emptyList(), "Profile",
+			ProgressionPath.BALANCED, false, "Local account data", "Unknown")));
 		SwingUtilities.invokeAndWait(() -> assertTrue(panel.getComponentCount() > 0));
 	}
 
@@ -35,4 +36,3 @@ public class MainframePanelTest
 		assertTrue(store.getCustomGoals("profile").get(0).isComplete());
 	}
 }
-

@@ -8,6 +8,8 @@ It does not automate gameplay, generate input, communicate with game worlds, dis
 
 - Curated main-account goals for account unlocks, skill targets, gear goals, and quest clusters.
 - Safe automatic progress checks for visible skill levels and completed quests.
+- Per-character progression paths for balanced, bossing, PvP, completion, and maxing priorities.
+- Optional public hiscore import for boss kills, clue counts, collection log count, minigame rows, and skill backup.
 - Manual checkboxes for gear, reward unlocks, prayer scrolls, defenders, fire cape, and custom goals.
 - Local-only persistence through RuneLite configuration storage.
 - Per-character saved progress when logged in, with a profile fallback before login.

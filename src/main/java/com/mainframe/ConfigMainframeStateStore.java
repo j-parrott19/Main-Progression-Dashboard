@@ -12,6 +12,7 @@ final class ConfigMainframeStateStore implements MainframeStateStore
 	static final String GROUP = "mainframe";
 	private static final String MANUAL_PREFIX = "manual.";
 	private static final String CUSTOM_PREFIX = "custom.";
+	private static final String PATH_PREFIX = "path.";
 	private final ConfigManager configManager;
 
 	ConfigMainframeStateStore(ConfigManager configManager)
@@ -49,6 +50,25 @@ final class ConfigMainframeStateStore implements MainframeStateStore
 	}
 
 	@Override
+	public ProgressionPath getProgressionPath(String scope)
+	{
+		return ProgressionPath.fromConfigValue(configManager.getConfiguration(GROUP, PATH_PREFIX + scope));
+	}
+
+	@Override
+	public boolean hasProgressionPath(String scope)
+	{
+		String value = configManager.getConfiguration(GROUP, PATH_PREFIX + scope);
+		return value != null && !value.trim().isEmpty();
+	}
+
+	@Override
+	public void setProgressionPath(String scope, ProgressionPath progressionPath)
+	{
+		configManager.setConfiguration(GROUP, PATH_PREFIX + scope, progressionPath.name());
+	}
+
+	@Override
 	public java.util.List<CustomGoal> getCustomGoals(String scope)
 	{
 		String value = configManager.getConfiguration(GROUP, CUSTOM_PREFIX + scope);
@@ -65,4 +85,3 @@ final class ConfigMainframeStateStore implements MainframeStateStore
 		configManager.setConfiguration(GROUP, CUSTOM_PREFIX + scope, CustomGoalCodec.encode(goals));
 	}
 }
-

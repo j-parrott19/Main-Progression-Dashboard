@@ -39,6 +39,7 @@ final class MainframePanel extends PluginPanel
 	private final MainframeStateStore stateStore;
 	private final Consumer<Boolean> manualRefresh;
 	private final Runnable refreshRequest;
+	private final Consumer<ProgressionPath> progressionPathChange;
 	private final boolean showCompletedGoals;
 	private String scope;
 	private ProgressSnapshot snapshot;
@@ -48,12 +49,14 @@ final class MainframePanel extends PluginPanel
 		MainframeStateStore stateStore,
 		Consumer<Boolean> manualRefresh,
 		Runnable refreshRequest,
+		Consumer<ProgressionPath> progressionPathChange,
 		boolean showCompletedGoals)
 	{
 		super(false);
 		this.stateStore = stateStore;
 		this.manualRefresh = manualRefresh;
 		this.refreshRequest = refreshRequest;
+		this.progressionPathChange = progressionPathChange;
 		this.showCompletedGoals = showCompletedGoals;
 		setLayout(new BorderLayout());
 		setBackground(BACKGROUND);
@@ -84,6 +87,11 @@ final class MainframePanel extends PluginPanel
 			return;
 		}
 
+		if (!snapshot.isProgressionPathChosen())
+		{
+			content.add(pathChoiceCard());
+		}
+
 		content.add(section("Next Unlocks", nextUnlockCards()));
 		content.add(section(GoalCategory.ACCOUNT_UNLOCKS.getDisplayName(), goalCards(GoalCategory.ACCOUNT_UNLOCKS)));
 		content.add(section(GoalCategory.SKILL_TARGETS.getDisplayName(), goalCards(GoalCategory.SKILL_TARGETS)));
@@ -101,19 +109,72 @@ final class MainframePanel extends PluginPanel
 
 		JLabel title = label("Mainframe", 18, Font.BOLD, TEXT);
 		JLabel account = label(snapshot == null ? "Profile" : snapshot.getAccountLabel(), 11, Font.PLAIN, MUTED);
+		JLabel accountSummary = label(snapshot == null ? "Local account data" : snapshot.getAccountSummaryText(), 10, Font.PLAIN, MUTED);
+		JLabel importStatus = label(snapshot == null ? "" : snapshot.getImportStatusText(), 10, Font.PLAIN, MUTED);
 		JPanel stack = new JPanel();
 		stack.setLayout(new BoxLayout(stack, BoxLayout.Y_AXIS));
 		stack.setBackground(BACKGROUND);
 		stack.add(title);
 		stack.add(account);
+		stack.add(accountSummary);
+		stack.add(importStatus);
 
+		JComboBox<ProgressionPath> path = new JComboBox<>(ProgressionPath.values());
+		path.setFocusable(false);
+		if (snapshot != null)
+		{
+			path.setSelectedItem(snapshot.getProgressionPath());
+		}
+		path.addActionListener(event ->
+		{
+			ProgressionPath selected = (ProgressionPath) path.getSelectedItem();
+			if (selected != null && snapshot != null && selected != snapshot.getProgressionPath())
+			{
+				progressionPathChange.accept(selected);
+			}
+		});
 		JButton refresh = new JButton("Refresh");
 		refresh.setFocusable(false);
 		refresh.addActionListener(event -> refreshRequest.run());
 
+		JPanel actions = new JPanel();
+		actions.setOpaque(false);
+		actions.setLayout(new BoxLayout(actions, BoxLayout.Y_AXIS));
+		actions.add(path);
+		actions.add(refresh);
+
 		header.add(stack, BorderLayout.CENTER);
-		header.add(refresh, BorderLayout.EAST);
+		header.add(actions, BorderLayout.EAST);
 		return header;
+	}
+
+	private JPanel pathChoiceCard()
+	{
+		JPanel card = card();
+		card.setLayout(new BorderLayout(6, 6));
+		JLabel title = label("Choose your path", 13, Font.BOLD, TEXT);
+		JLabel detail = html("Mainframe will still track the full account, but this changes what rises to the top first.", MUTED);
+		JComboBox<ProgressionPath> path = new JComboBox<>(ProgressionPath.values());
+		path.setSelectedItem(snapshot.getProgressionPath());
+		JButton save = new JButton("Use Path");
+		save.addActionListener(event ->
+		{
+			ProgressionPath selected = (ProgressionPath) path.getSelectedItem();
+			if (selected != null)
+			{
+				progressionPathChange.accept(selected);
+			}
+		});
+
+		JPanel stack = new JPanel();
+		stack.setOpaque(false);
+		stack.setLayout(new BoxLayout(stack, BoxLayout.Y_AXIS));
+		stack.add(title);
+		stack.add(detail);
+		card.add(stack, BorderLayout.CENTER);
+		card.add(path, BorderLayout.NORTH);
+		card.add(save, BorderLayout.EAST);
+		return card;
 	}
 
 	private JPanel section(String title, List<JPanel> cards)

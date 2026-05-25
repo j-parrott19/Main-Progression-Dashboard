@@ -16,5 +16,14 @@ public interface MainframeConfig extends Config
 	{
 		return true;
 	}
-}
 
+	@ConfigItem(
+		keyName = "enableHiscoreLookup",
+		name = "Use public hiscores",
+		description = "Use public OSRS hiscores to enrich Mainframe account progress"
+	)
+	default boolean enableHiscoreLookup()
+	{
+		return true;
+	}
+}

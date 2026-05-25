@@ -5,7 +5,10 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 import net.runelite.api.Quest;
 import net.runelite.api.Skill;
 import org.junit.Test;
@@ -59,5 +62,50 @@ public class RoadmapProgressServiceTest
 		GoalProgress closeProgress = progress.stream().filter(item -> item.getGoal().getId().equals("close")).findFirst().get();
 		assertTrue(closeProgress.isNextRecommended());
 	}
-}
 
+	@Test
+	public void progressionPathsChangeRecommendationPriority()
+	{
+		List<RoadmapGoal> goals = Arrays.asList(
+			goal("piety", "Piety", GoalCategory.ACCOUNT_UNLOCKS, RoadmapRequirement.skill(Skill.PRAYER, 70)),
+			goal("whip", "Abyssal Whip", GoalCategory.GEAR_GOALS, RoadmapRequirement.manual("whip", "Own abyssal whip")),
+			goal("desert-treasure", "Desert Treasure I", GoalCategory.QUEST_CLUSTERS, RoadmapRequirement.quest(Quest.DESERT_TREASURE_I)),
+			goal("quest-cape-path", "Quest Cape Path", GoalCategory.QUEST_CLUSTERS, RoadmapRequirement.manual("quest-cape-path", "Quest cape path planned")),
+			goal("construction-83", "83 Construction", GoalCategory.SKILL_TARGETS, RoadmapRequirement.skill(Skill.CONSTRUCTION, 83)),
+			goal("cooking-70", "70 Cooking", GoalCategory.SKILL_TARGETS, RoadmapRequirement.skill(Skill.COOKING, 70)));
+
+		assertTrue(isRecommended(goals, ProgressionPath.BOSSING, "whip"));
+		assertTrue(isRecommended(goals, ProgressionPath.PVP, "desert-treasure"));
+		assertTrue(isRecommended(goals, ProgressionPath.COMPLETION, "quest-cape-path"));
+		assertTrue(isRecommended(goals, ProgressionPath.MAXING, "construction-83"));
+		assertTrue(isRecommended(goals, ProgressionPath.BALANCED, "piety"));
+	}
+
+	private static boolean isRecommended(List<RoadmapGoal> goals, ProgressionPath path, String goalId)
+	{
+		List<GoalProgress> progress = new RoadmapProgressService(goals).evaluate(snapshot(path));
+		return progress.stream()
+			.filter(item -> item.getGoal().getId().equals(goalId))
+			.findFirst()
+			.get()
+			.isNextRecommended();
+	}
+
+	private static AccountProgressSnapshot snapshot(ProgressionPath path)
+	{
+		Map<Skill, Integer> skills = new EnumMap<>(Skill.class);
+		for (Skill skill : Skill.values())
+		{
+			skills.put(skill, 1);
+		}
+		skills.put(Skill.PRAYER, 43);
+		skills.put(Skill.CONSTRUCTION, 50);
+		return new AccountProgressSnapshot(skills, Collections.emptySet(), Collections.emptySet(), 90, 1500, "NORMAL",
+			path, true, HiscoreAccountData.NOT_REQUESTED);
+	}
+
+	private static RoadmapGoal goal(String id, String title, GoalCategory category, RoadmapRequirement requirement)
+	{
+		return new RoadmapGoal(id, title, category, GoalTier.MID, 100, "", Arrays.asList(requirement), requirement.getType() == RequirementType.MANUAL_UNLOCK);
+	}
+}

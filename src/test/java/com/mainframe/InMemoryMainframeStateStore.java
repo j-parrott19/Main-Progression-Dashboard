@@ -11,6 +11,7 @@ final class InMemoryMainframeStateStore implements MainframeStateStore
 {
 	private final Map<String, Set<String>> manual = new HashMap<>();
 	private final Map<String, List<CustomGoal>> custom = new HashMap<>();
+	private final Map<String, ProgressionPath> paths = new HashMap<>();
 
 	@Override
 	public Set<String> getCompletedManualKeys(String scope)
@@ -33,6 +34,24 @@ final class InMemoryMainframeStateStore implements MainframeStateStore
 	}
 
 	@Override
+	public ProgressionPath getProgressionPath(String scope)
+	{
+		return paths.getOrDefault(scope, ProgressionPath.BALANCED);
+	}
+
+	@Override
+	public boolean hasProgressionPath(String scope)
+	{
+		return paths.containsKey(scope);
+	}
+
+	@Override
+	public void setProgressionPath(String scope, ProgressionPath progressionPath)
+	{
+		paths.put(scope, progressionPath);
+	}
+
+	@Override
 	public List<CustomGoal> getCustomGoals(String scope)
 	{
 		return new ArrayList<>(custom.getOrDefault(scope, new ArrayList<>()));
@@ -44,4 +63,3 @@ final class InMemoryMainframeStateStore implements MainframeStateStore
 		custom.put(scope, new ArrayList<>(goals));
 	}
 }
-
